@@ -21,7 +21,7 @@ Fill in Supabase and Google Maps values in `.env.local`.
 
 ## Database setup
 
-Apply migrations in order to a Supabase project:
+Apply migrations in order to a Supabase project, or paste/run `db/setup.sql` once in the Supabase SQL editor:
 
 1. `db/migrations/001_initial_schema.sql`
 2. `db/migrations/002_auth_rls.sql`
