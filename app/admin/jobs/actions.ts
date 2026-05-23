@@ -14,23 +14,14 @@ async function getSetting<T extends object>(key: string, defaults: T) {
   return mergeSettings(defaults, data?.value_json);
 }
 
-async function buildChecklistSnapshot(estimateId: string) {
+async function buildChecklistSnapshotForService(serviceId: string | null) {
   const supabase = await createClient();
-  const { data: firstItem } = await supabase
-    .from("document_items")
-    .select("service_id")
-    .eq("document_id", estimateId)
-    .not("service_id", "is", null)
-    .order("sort_order")
-    .limit(1)
-    .maybeSingle();
-
   let templateId: string | null = null;
-  if (firstItem?.service_id) {
+  if (serviceId) {
     const { data: specific } = await supabase
       .from("checklist_templates")
       .select("id")
-      .eq("service_id", firstItem.service_id)
+      .eq("service_id", serviceId)
       .eq("active", true)
       .limit(1)
       .maybeSingle();
@@ -62,6 +53,56 @@ async function buildChecklistSnapshot(estimateId: string) {
     required: item.required,
     completed: false,
   }));
+}
+
+async function buildChecklistSnapshot(estimateId: string) {
+  const supabase = await createClient();
+  const { data: firstItem } = await supabase
+    .from("document_items")
+    .select("service_id")
+    .eq("document_id", estimateId)
+    .not("service_id", "is", null)
+    .order("sort_order")
+    .limit(1)
+    .maybeSingle();
+
+  return buildChecklistSnapshotForService(firstItem?.service_id ?? null);
+}
+
+export async function createAdminJob(formData: FormData) {
+  await requireRole(["admin"]);
+  const propertyId = String(formData.get("propertyId") ?? "");
+  const serviceId = String(formData.get("serviceId") ?? "") || null;
+  const assignedCrewIds = formData.getAll("assignedCrewIds").map(String).filter(Boolean);
+  const supabase = await createClient();
+  const { data: property } = await supabase.from("properties").select("id, customer_id").eq("id", propertyId).maybeSingle();
+  if (!property) redirect("/admin/jobs/new?error=Property not found");
+
+  const checklist = await buildChecklistSnapshotForService(serviceId);
+  const { data: job, error } = await supabase
+    .from("jobs")
+    .insert({
+      customer_id: property.customer_id,
+      property_id: property.id,
+      status: String(formData.get("status") ?? "scheduled"),
+      scheduled_date: String(formData.get("scheduledDate") ?? "") || null,
+      scheduled_start_time: String(formData.get("scheduledStartTime") ?? "") || null,
+      scheduled_end_time: String(formData.get("scheduledEndTime") ?? "") || null,
+      assigned_crew_ids: assignedCrewIds,
+      checklist_snapshot: checklist,
+      customer_visible_notes: String(formData.get("requestedWork") ?? ""),
+      tool_notes: String(formData.get("toolNotes") ?? ""),
+      safety_notes: String(formData.get("safetyNotes") ?? ""),
+      internal_notes: `Admin-created direct job. Service id: ${serviceId ?? "none"}\n${String(formData.get("internalNotes") ?? "")}`,
+    })
+    .select("id")
+    .single();
+
+  if (error) redirect(`/admin/jobs/new?error=${encodeURIComponent(error.message)}`);
+  revalidatePath("/admin/jobs");
+  revalidatePath("/admin/map");
+  revalidatePath("/admin/dashboard");
+  redirect(`/admin/jobs/${job.id}`);
 }
 
 export async function convertEstimateToJob(formData: FormData) {

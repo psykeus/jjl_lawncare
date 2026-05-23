@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ButtonLink } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils";
@@ -30,10 +32,24 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-black">Admin dashboard</h1>
-        <p className="mt-2 text-[var(--muted-foreground)]">Operational overview for requests, estimates, jobs, payments, and earnings.</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black">Admin dashboard</h1>
+          <p className="mt-2 text-[var(--muted-foreground)]">Operational overview for requests, estimates, jobs, payments, and earnings.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <ButtonLink href="/admin/customers">Create customer/account</ButtonLink>
+          <ButtonLink href="/admin/jobs/new" variant="outline">Enter job</ButtonLink>
+        </div>
       </div>
+      <Card>
+        <h2 className="text-xl font-bold">Quick operations</h2>
+        <div className="mt-4 grid gap-3 text-sm md:grid-cols-3">
+          <Link className="rounded-xl border border-[var(--border)] p-4 font-semibold hover:bg-[var(--muted)]" href="/admin/customers">Add customer, account, and mapped property</Link>
+          <Link className="rounded-xl border border-[var(--border)] p-4 font-semibold hover:bg-[var(--muted)]" href="/admin/jobs/new">Enter phone/text job directly</Link>
+          <Link className="rounded-xl border border-[var(--border)] p-4 font-semibold hover:bg-[var(--muted)]" href="/admin/map">Plan mapped job routes</Link>
+        </div>
+      </Card>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {cards.map(([title, value, description]) => (
           <Card key={String(title)}>

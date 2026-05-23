@@ -1,58 +1,99 @@
-import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { StatusBadge } from "@/components/status/status-badge";
 import { createClient } from "@/lib/supabase/server";
-import { formatDate } from "@/lib/utils";
+import { AdminJobMap, type AdminMapJob } from "./admin-job-map";
 
 type RelatedRow<T> = T | T[] | null;
 function one<T>(value: RelatedRow<T>): T | null { return Array.isArray(value) ? (value[0] ?? null) : value; }
+
+type JobRow = {
+  id: string;
+  status: string;
+  scheduled_date: string | null;
+  scheduled_start_time: string | null;
+  customer_visible_notes: string | null;
+  customers: RelatedRow<{ name: string | null; email: string | null; phone: string | null }>;
+  properties: RelatedRow<{ address_line_1: string; city: string; state: string; zip: string; latitude: number | null; longitude: number | null }>;
+  estimate: RelatedRow<{ id: string; document_number: string | null; total: number | null; scope_included: string | null; quote_request_id: string | null }>;
+};
+
+type QuoteRequestRow = {
+  id: string;
+  customer_notes: string | null;
+  preferred_dates: string | null;
+  yard_size: string | null;
+  grass_height: string | null;
+  services: RelatedRow<{ name: string | null }>;
+};
 
 export default async function AdminMapPage() {
   const supabase = await createClient();
   const { data: jobs } = await supabase
     .from("jobs")
-    .select("id, status, scheduled_date, customers(name), properties(address_line_1, city, state, zip, latitude, longitude)")
+    .select("id, status, scheduled_date, scheduled_start_time, customer_visible_notes, customers(name, email, phone), properties(address_line_1, city, state, zip, latitude, longitude), estimate:documents!jobs_estimate_id_fkey(id, document_number, total, scope_included, quote_request_id)")
     .neq("status", "cancelled")
     .order("scheduled_date", { ascending: true });
 
-  const locatedJobs = (jobs ?? []).filter((job) => {
+  const jobRows = (jobs ?? []) as JobRow[];
+  const quoteRequestIds = Array.from(new Set(jobRows.map((job) => one(job.estimate)?.quote_request_id).filter((id): id is string => Boolean(id))));
+
+  const [{ data: quoteRequests }, { data: mediaFiles }] = await Promise.all([
+    quoteRequestIds.length
+      ? supabase.from("quote_requests").select("id, customer_notes, preferred_dates, yard_size, grass_height, services(name)").in("id", quoteRequestIds)
+      : Promise.resolve({ data: [] as QuoteRequestRow[] }),
+    quoteRequestIds.length
+      ? supabase.from("media_files").select("id, related_id, file_url").eq("related_type", "quote_request").in("related_id", quoteRequestIds).order("created_at", { ascending: true })
+      : Promise.resolve({ data: [] as { id: string; related_id: string; file_url: string }[] }),
+  ]);
+
+  const quoteById = new Map<string, QuoteRequestRow>((quoteRequests ?? []).map((request) => [request.id, request as QuoteRequestRow]));
+  const photosByQuoteId = new Map<string, string[]>();
+  for (const file of mediaFiles ?? []) {
+    const { data } = await supabase.storage.from("quote-photos").createSignedUrl(file.file_url, 60 * 10);
+    if (!data?.signedUrl) continue;
+    photosByQuoteId.set(file.related_id, [...(photosByQuoteId.get(file.related_id) ?? []), data.signedUrl]);
+  }
+
+  const mapJobs: AdminMapJob[] = jobRows.map((job) => {
+    const customer = one(job.customers);
     const property = one(job.properties);
-    return property?.latitude && property?.longitude;
+    const estimate = one(job.estimate);
+    const quote = estimate?.quote_request_id ? quoteById.get(estimate.quote_request_id) : undefined;
+    const service = one(quote?.services ?? null);
+    return {
+      id: job.id,
+      status: job.status,
+      scheduledDate: job.scheduled_date,
+      scheduledStartTime: job.scheduled_start_time,
+      customerName: customer?.name ?? "Unknown customer",
+      customerPhone: customer?.phone ?? null,
+      address: property?.address_line_1 ?? "No address",
+      city: property?.city ?? "",
+      state: property?.state ?? "",
+      zip: property?.zip ?? "",
+      latitude: property?.latitude ? Number(property.latitude) : null,
+      longitude: property?.longitude ? Number(property.longitude) : null,
+      serviceName: service?.name ?? null,
+      requestedWork: quote?.customer_notes ?? job.customer_visible_notes,
+      scopeIncluded: estimate?.scope_included ?? null,
+      preferredDates: quote?.preferred_dates ?? null,
+      yardSize: quote?.yard_size ?? null,
+      grassHeight: quote?.grass_height ?? null,
+      estimateNumber: estimate?.document_number ?? null,
+      estimateTotal: estimate?.total ? Number(estimate.total) : null,
+      photoUrls: estimate?.quote_request_id ? (photosByQuoteId.get(estimate.quote_request_id) ?? []) : [],
+    };
   });
-  const mapQuery = locatedJobs.map((job) => {
-    const property = one(job.properties);
-    return `${property?.latitude},${property?.longitude}`;
-  }).join("/");
+
+  const unmappedCount = mapJobs.filter((job) => !job.latitude || !job.longitude).length;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-black">Internal map</h1>
-        <p className="mt-2 text-[var(--muted-foreground)]">Authorized job locations only. Public users never see customer addresses or map markers.</p>
+        <h1 className="text-3xl font-black">Internal job map</h1>
+        <p className="mt-2 text-[var(--muted-foreground)]">Admin-only routing board showing each job, requested work, quote photos, and scheduled route pins.</p>
       </div>
-      <Card>
-        <h2 className="text-xl font-bold">Google Maps</h2>
-        <p className="mt-2 text-sm text-[var(--muted-foreground)]">Open individual job locations in Google Maps. Full embedded markers can be added once the Google Maps browser key is configured.</p>
-        {mapQuery ? <a className="mt-4 inline-block font-semibold text-[var(--primary)]" href={`https://www.google.com/maps/dir/${mapQuery}`} target="_blank" rel="noreferrer">Open route-style map</a> : null}
-      </Card>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {(jobs ?? []).map((job) => {
-          const customer = one(job.customers);
-          const property = one(job.properties);
-          const mapsHref = property?.latitude && property?.longitude
-            ? `https://www.google.com/maps/search/?api=1&query=${property.latitude},${property.longitude}`
-            : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property?.address_line_1}, ${property?.city}, ${property?.state} ${property?.zip}`)}`;
-          return (
-            <Card key={job.id}>
-              <div className="flex items-start justify-between gap-3"><h2 className="font-bold"><Link href={`/admin/jobs/${job.id}`}>{customer?.name ?? "Job"}</Link></h2><StatusBadge status={job.status} /></div>
-              <p className="mt-3 text-sm text-[var(--muted-foreground)]">{property?.address_line_1}<br />{property?.city}, {property?.state} {property?.zip}</p>
-              <p className="mt-2 text-sm">Scheduled: {formatDate(job.scheduled_date)}</p>
-              <a className="mt-4 inline-block text-sm font-semibold text-[var(--primary)]" href={mapsHref} target="_blank" rel="noreferrer">Open in Google Maps</a>
-            </Card>
-          );
-        })}
-        {jobs?.length ? null : <Card>No jobs to map yet.</Card>}
-      </div>
+      {unmappedCount ? <Card className="border-yellow-200 bg-yellow-50 text-sm text-yellow-900">{unmappedCount} job(s) are missing coordinates. Edit or recreate the property after configuring the Google Geocoding API key.</Card> : null}
+      <AdminJobMap jobs={mapJobs} apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY} />
     </div>
   );
 }

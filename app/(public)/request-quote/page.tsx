@@ -27,7 +27,7 @@ async function RequestQuoteContent({ searchParams }: { searchParams: Promise<{ e
     <section className="container-page max-w-3xl py-12">
       <Card>
         <h1 className="text-4xl font-black">Request a quote</h1>
-        <p className="mt-3 text-[var(--muted-foreground)]">Tell us what you need. Photos can be added after the database/storage setup is connected.</p>
+        <p className="mt-3 text-[var(--muted-foreground)]">Tell us what you need and upload yard photos now so the admin team can estimate and route the job accurately.</p>
         {params.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm font-medium text-[var(--danger)]">{params.error}</div> : null}
         <form action={submitQuoteRequest} encType="multipart/form-data" className="mt-8 grid gap-5">
           <div className="grid gap-4 md:grid-cols-2">
@@ -62,8 +62,8 @@ async function RequestQuoteContent({ searchParams }: { searchParams: Promise<{ e
           <Field label="Gate/access notes"><Textarea name="gateAccess" /></Field>
           <Field label="Preferred dates"><Input name="preferredDates" placeholder="Example: next Saturday morning" /></Field>
           <Field label="Customer notes"><Textarea name="customerNotes" /></Field>
-          <Field label="Photos" hint="Optional. Upload up to 6 photos of the yard or cleanup area.">
-            <Input name="photos" type="file" accept="image/*" multiple />
+          <Field label="Photos" hint="Upload up to 6 photos of the yard or cleanup area. These stay private and attach to the internal job map.">
+            <Input name="photos" type="file" accept="image/*" multiple required />
           </Field>
           <div className="grid gap-3 rounded-xl bg-[var(--muted)] p-4 text-sm">
             <label><input className="mr-2" type="checkbox" name="termsAccepted" required /> I accept the quote request terms and understand unsafe/out-of-scope jobs may be declined.</label>
@@ -77,7 +77,7 @@ async function RequestQuoteContent({ searchParams }: { searchParams: Promise<{ e
 }
 
 async function getVisibleServices() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return [];
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)) return [];
   const supabase = await createClient();
   const { data } = await supabase
     .from("services")
