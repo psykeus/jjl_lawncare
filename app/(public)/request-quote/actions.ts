@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 import { geocodeAddress } from "@/lib/maps/geocode";
 import { checkServiceArea } from "@/lib/service-area/check";
 import { quoteRequestSchema } from "@/lib/validations/quote-request";
@@ -78,6 +79,30 @@ function highestRisk(current: "low" | "medium" | "high", candidate: string | nul
   const order = { low: 1, medium: 2, high: 3 };
   if (candidate !== "medium" && candidate !== "high") return current;
   return order[candidate] > order[current] ? candidate : current;
+}
+
+async function getSignedInProfileId(email: string) {
+  const serverSupabase = await createServerClient();
+  const { data: userData } = await serverSupabase.auth.getUser();
+  if (userData.user) {
+    const { data: profile } = await serverSupabase
+      .from("profiles")
+      .select("id")
+      .eq("auth_user_id", userData.user.id)
+      .maybeSingle();
+    if (profile?.id) return profile.id as string;
+  }
+
+  const adminSupabase = createAdminClient();
+  const { data: profileByEmail } = await adminSupabase
+    .from("profiles")
+    .select("id")
+    .ilike("email", email)
+    .eq("role", "customer")
+    .eq("active", true)
+    .limit(1)
+    .maybeSingle();
+  return (profileByEmail?.id as string | undefined) ?? null;
 }
 
 async function uploadQuotePhoto({ supabase, requestId, serviceRequestId, photo }: { supabase: ReturnType<typeof createAdminClient>; requestId: string; serviceRequestId?: string; photo: File }) {
@@ -170,30 +195,51 @@ export async function submitQuoteRequest(formData: FormData) {
   const missingPhotoService = selectedServices.find((item) => !(photosBySelectedService.get(item.serviceId)?.length));
   if (missingPhotoService) redirect(`/request-quote?error=${encodeURIComponent("Please upload at least one photo for each selected service.")}`);
 
-  const { data: customer, error: customerError } = await supabase
-    .from("customers")
-    .insert({ name: input.name, email: input.email, phone: input.phone, status: "new" })
-    .select("id")
-    .single();
-  if (customerError) redirect(`/request-quote?error=${encodeURIComponent(customerError.message)}`);
+  const profileId = await getSignedInProfileId(input.email);
+  const { data: existingCustomer } = profileId
+    ? await supabase.from("customers").select("id").eq("profile_id", profileId).limit(1).maybeSingle()
+    : await supabase.from("customers").select("id").ilike("email", input.email).limit(1).maybeSingle();
 
-  const { data: property, error: propertyError } = await supabase
-    .from("properties")
-    .insert({
-      customer_id: customer.id,
-      address_line_1: input.addressLine1,
-      address_line_2: input.addressLine2 || null,
-      city: input.city,
-      state: input.state.toUpperCase(),
-      zip: input.zip,
-      latitude: geocodedCoordinates?.latitude ?? null,
-      longitude: geocodedCoordinates?.longitude ?? null,
-      gate_notes: input.gateAccess || null,
-      yard_size: input.yardSize || null,
-      active: true,
-    })
+  const customer = existingCustomer ?? (await supabase
+    .from("customers")
+    .insert({ profile_id: profileId, name: input.name, email: input.email, phone: input.phone, status: "new" })
     .select("id")
-    .single();
+    .single()).data;
+  if (!customer) redirect(`/request-quote?error=${encodeURIComponent("Could not create customer record")}`);
+
+  await supabase.from("customers").update({
+    profile_id: profileId,
+    name: input.name,
+    email: input.email,
+    phone: input.phone,
+  }).eq("id", customer.id);
+
+  const { data: existingProperty } = await supabase
+    .from("properties")
+    .select("id")
+    .eq("customer_id", customer.id)
+    .ilike("address_line_1", input.addressLine1)
+    .ilike("city", input.city)
+    .eq("zip", input.zip)
+    .limit(1)
+    .maybeSingle();
+
+  const propertyPayload = {
+    customer_id: customer.id,
+    address_line_1: input.addressLine1,
+    address_line_2: input.addressLine2 || null,
+    city: input.city,
+    state: input.state.toUpperCase(),
+    zip: input.zip,
+    latitude: geocodedCoordinates?.latitude ?? null,
+    longitude: geocodedCoordinates?.longitude ?? null,
+    gate_notes: input.gateAccess || null,
+    yard_size: input.yardSize || null,
+    active: true,
+  };
+  const { data: property, error: propertyError } = existingProperty
+    ? await supabase.from("properties").update(propertyPayload).eq("id", existingProperty.id).select("id").single()
+    : await supabase.from("properties").insert(propertyPayload).select("id").single();
   if (propertyError) redirect(`/request-quote?error=${encodeURIComponent(propertyError.message)}`);
 
   let riskLevel: "low" | "medium" | "high" = input.dogWastePresent ? "medium" : "low";

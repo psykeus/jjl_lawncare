@@ -27,6 +27,7 @@
 - Preferred dates/time-window capture
 - Customer notes
 - Terms acceptance
+- Server-side quote intake reuses/links existing customer profiles by signed-in session or matching email before creating request records
 - Server-side quote intake creates:
   - Customer
   - Property
