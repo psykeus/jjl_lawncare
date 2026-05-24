@@ -63,7 +63,8 @@ export function jobWorkloadMinutes(job: PlannerJob) {
   return Math.max(15, Number(job.estimatedDurationMinutes ?? 60)) * Math.max(1, Number(job.requiredCrewSize ?? 1));
 }
 
-export function routeBufferMinutes(jobCount: number) {
+export function routeBufferMinutes(jobCount: number, legMinutes?: Array<number | null | undefined>) {
+  if (legMinutes?.length) return legMinutes.reduce<number>((sum, minutes) => sum + Math.max(0, Number(minutes ?? 15)), 0);
   return Math.max(0, jobCount - 1) * 15;
 }
 
@@ -119,11 +120,12 @@ export function sortJobsForRoute(jobs: PlannerJob[]) {
   return route;
 }
 
-export function buildRouteTimeline(jobs: PlannerJob[], dayStart = 9 * 60, availability: CrewAvailability[] = []) {
+export function buildRouteTimeline(jobs: PlannerJob[], dayStart = 9 * 60, availability: CrewAvailability[] = [], legMinutes?: Array<number | null | undefined>) {
   const sorted = sortJobsForRoute(jobs);
   let cursor = dayStart;
   return sorted.map((job, index) => {
-    if (index > 0) cursor += 15;
+    const travelBefore = index > 0 ? Math.max(0, Number(legMinutes?.[index - 1] ?? 15)) : 0;
+    if (index > 0) cursor += travelBefore;
     const windowStart = timeToMinutes(job.earliestStartTime);
     if (windowStart != null && cursor < windowStart) cursor = windowStart;
     const scheduledStart = timeToMinutes(job.scheduledStartTime);
@@ -143,21 +145,22 @@ export function buildRouteTimeline(jobs: PlannerJob[], dayStart = 9 * 60, availa
       start,
       end,
       crewAvailable,
+      travelBefore,
       warning: warnings[0] ?? null,
       warnings,
     };
   });
 }
 
-export function findCapacityWarnings(jobs: PlannerJob[], availability: CrewAvailability[]) {
+export function findCapacityWarnings(jobs: PlannerJob[], availability: CrewAvailability[], legMinutes?: Array<number | null | undefined>) {
   const crewMinutes = availabilityMinutes(availability);
   const workload = jobs.reduce((sum, job) => sum + jobWorkloadMinutes(job), 0);
-  const travel = routeBufferMinutes(jobs.length);
+  const travel = routeBufferMinutes(jobs.length, legMinutes);
   const total = workload + travel;
   const warnings: string[] = [];
   if (!availability.length) warnings.push("No crew availability is entered for this day.");
   if (total > crewMinutes) warnings.push(`Day is overbooked by ${Math.ceil(total - crewMinutes)} crew-minutes.`);
-  for (const entry of buildRouteTimeline(jobs, availability[0]?.startTime ? (timeToMinutes(availability[0].startTime) ?? 9 * 60) : 9 * 60, availability)) {
+  for (const entry of buildRouteTimeline(jobs, availability[0]?.startTime ? (timeToMinutes(availability[0].startTime) ?? 9 * 60) : 9 * 60, availability, legMinutes)) {
     for (const warning of entry.warnings) warnings.push(`${entry.job.customerName}: ${warning}.`);
   }
   return { crewMinutes, workload, travel, total, remaining: crewMinutes - total, warnings };

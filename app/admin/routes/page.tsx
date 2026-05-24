@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
-import { buildRouteTimeline, findCapacityWarnings, minutesToTime, type CrewAvailability, type PlannerJob } from "@/lib/schedule/planner";
+import { estimateDrivingLegs } from "@/lib/maps/distance-matrix";
+import { buildRouteTimeline, findCapacityWarnings, minutesToTime, sortJobsForRoute, type CrewAvailability, type PlannerJob } from "@/lib/schedule/planner";
 
 function one<T>(value: T | T[] | null): T | null { return Array.isArray(value) ? (value[0] ?? null) : value; }
 function today() { return new Date().toISOString().slice(0, 10); }
@@ -25,8 +26,14 @@ export default async function AdminRoutesPage({ searchParams }: { searchParams: 
   });
   const dayStart = crewAvailability.map((row) => row.startTime).sort()[0];
   const startMinutes = dayStart ? Number(dayStart.split(":")[0]) * 60 + Number(dayStart.split(":")[1]) : 9 * 60;
-  const timeline = buildRouteTimeline(plannerJobs, startMinutes, crewAvailability);
-  const capacity = findCapacityWarnings(plannerJobs, crewAvailability);
+  const orderedJobs = sortJobsForRoute(plannerJobs);
+  const legEstimate = await estimateDrivingLegs(orderedJobs);
+  const legMinutes = legEstimate.legs.map((leg) => leg.durationMinutes);
+  const timeline = buildRouteTimeline(orderedJobs, startMinutes, crewAvailability, legMinutes);
+  const capacity = findCapacityWarnings(orderedJobs, crewAvailability, legMinutes);
+  const directionsUrl = orderedJobs.filter((job) => job.latitude && job.longitude).length > 1
+    ? `https://www.google.com/maps/dir/${orderedJobs.map((job) => job.latitude && job.longitude ? `${job.latitude},${job.longitude}` : `${job.address}, ${job.city}`).map(encodeURIComponent).join("/")}`
+    : "/admin/map";
 
   return (
     <div className="space-y-6">
@@ -34,15 +41,19 @@ export default async function AdminRoutesPage({ searchParams }: { searchParams: 
         <div><h1 className="text-3xl font-black">Route planner</h1><p className="mt-2 text-[var(--muted-foreground)]">A deterministic route timeline using job priority, customer windows, estimated workload, and crew availability.</p></div>
         <form className="flex gap-2"><input className="h-10 rounded-lg border border-[var(--border)] px-3 text-sm" name="date" type="date" defaultValue={date} /><button className="h-10 rounded-lg bg-[var(--primary)] px-4 font-semibold text-white">Plan</button></form>
       </div>
-      {capacity.warnings.length ? <Card className="border-red-200 bg-red-50"><h2 className="font-bold text-[var(--danger)]">Overbooking / routing warnings</h2><ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-red-900">{capacity.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></Card> : <Card className="border-green-200 bg-green-50 text-sm text-green-800">This route fits the entered crew availability.</Card>}
+      {legEstimate.error ? <Card className="border-amber-200 bg-amber-50 text-sm text-amber-900">{legEstimate.error}</Card> : null}
+      {capacity.warnings.length ? <Card className="border-red-200 bg-red-50"><h2 className="font-bold text-[var(--danger)]">Overbooking / routing warnings</h2><ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-red-900">{capacity.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></Card> : <Card className="border-green-200 bg-green-50 text-sm text-green-800">This route fits the entered crew availability. Travel source: {legEstimate.source === "google" ? "Google Distance Matrix" : "15-minute fallback buffers"}.</Card>}
       <Card>
         <h2 className="text-xl font-bold">Planned timeline</h2>
         <div className="mt-4 grid gap-3">
-          {timeline.map((entry, index) => <div key={entry.job.id} className="rounded-xl border border-[var(--border)] p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="text-sm font-bold text-[var(--primary)]">Stop {index + 1}: {minutesToTime(entry.start)}–{minutesToTime(entry.end)}</div><h3 className="mt-1 font-bold"><Link href={`/admin/jobs/${entry.job.id}`}>{entry.job.customerName}</Link></h3><p className="text-sm text-[var(--muted-foreground)]">{entry.job.address}, {entry.job.city}</p></div><div className="text-right text-sm"><div>{entry.job.estimatedDurationMinutes ?? 60} min</div><div>{entry.job.requiredCrewSize ?? 1} crew needed</div><div>{entry.crewAvailable} crew available</div></div></div>{entry.warnings.length ? <ul className="mt-2 list-disc pl-5 text-sm font-semibold text-[var(--danger)]">{entry.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul> : null}</div>)}
+          {timeline.map((entry, index) => {
+            const leg = index > 0 ? legEstimate.legs[index - 1] : null;
+            return <div key={entry.job.id} className="rounded-xl border border-[var(--border)] p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="text-sm font-bold text-[var(--primary)]">Stop {index + 1}: {minutesToTime(entry.start)}–{minutesToTime(entry.end)}</div>{leg ? <p className="mt-1 text-xs text-[var(--muted-foreground)]">Travel from prior stop: {leg.durationText ?? `${entry.travelBefore} min`}{leg.distanceText ? ` · ${leg.distanceText}` : ""}</p> : null}<h3 className="mt-1 font-bold"><Link href={`/admin/jobs/${entry.job.id}`}>{entry.job.customerName}</Link></h3><p className="text-sm text-[var(--muted-foreground)]">{entry.job.address}, {entry.job.city}</p></div><div className="text-right text-sm"><div>{entry.job.estimatedDurationMinutes ?? 60} min</div><div>{entry.job.requiredCrewSize ?? 1} crew needed</div><div>{entry.crewAvailable} crew available</div></div></div>{entry.warnings.length ? <ul className="mt-2 list-disc pl-5 text-sm font-semibold text-[var(--danger)]">{entry.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul> : null}</div>;
+          })}
           {timeline.length ? null : <p className="text-sm text-[var(--muted-foreground)]">No routeable jobs for this day.</p>}
         </div>
       </Card>
-      <Card><h2 className="text-xl font-bold">Slot guidance</h2><p className="mt-3 text-sm text-[var(--muted-foreground)]">Remaining capacity is {capacity.remaining} crew-minutes. If negative, the day is full or overbooked. For a new job, look for a day with enough remaining crew-minutes plus a 15-minute travel buffer.</p><Link href="/admin/schedule" className="mt-4 inline-block text-sm font-semibold text-[var(--primary)]">Open schedule board</Link></Card>
+      <Card><h2 className="text-xl font-bold">Slot guidance</h2><p className="mt-3 text-sm text-[var(--muted-foreground)]">Remaining capacity is {capacity.remaining} crew-minutes. If negative, the day is full or overbooked. For a new job, look for a day with enough remaining crew-minutes plus travel buffer.</p><div className="mt-4 flex flex-wrap gap-3"><Link href="/admin/schedule" className="text-sm font-semibold text-[var(--primary)]">Open schedule board</Link><a href={directionsUrl} target="_blank" rel="noreferrer" className="text-sm font-semibold text-[var(--primary)]">Open route in Google Maps</a></div></Card>
     </div>
   );
 }

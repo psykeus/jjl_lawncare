@@ -203,8 +203,10 @@
 - Crew-size warnings when a job needs more people than available at the planned work time
 - Time-window warnings when the planned route exceeds latest-end constraints
 - Deterministic route timeline using route priority, scheduled/window times, estimated duration, job coordinates, nearest-neighbor location ordering, and a travel buffer
+- Optional Google Distance Matrix travel estimates for route legs when a server Google Maps key and API access are configured
 - Potential time-slot finder for new jobs using requested duration, required crew count, travel buffer, and remaining capacity
 - Planned route timeline shows crew available at each stop
+- Route planner can open the ordered route in Google Maps
 - Slot guidance based on remaining crew-minutes
 - Internal admin job map
 - Google Maps embedded map support
