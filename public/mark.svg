@@ -1,0 +1,8 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+  <title id="title">JJ&amp;L Lawncare mark</title>
+  <rect width="64" height="64" rx="18" fill="#2F6B3B"/>
+  <path d="M14 42C27 42 34 35.5 34 22C21 22 14 28.5 14 42Z" fill="#F7F8F3"/>
+  <path d="M27 43C40.5 43 49 34.5 49 18.5C35.3 20 27 28.2 27 43Z" fill="#C7F2B8"/>
+  <path d="M13 48H51" stroke="#F7F8F3" stroke-width="4" stroke-linecap="round"/>
+  <path d="M18 55H46" stroke="#C7F2B8" stroke-width="3" stroke-linecap="round"/>
+</svg>

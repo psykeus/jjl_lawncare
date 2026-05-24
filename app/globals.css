@@ -1,17 +1,45 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: light;
   --background: #f7f8f3;
   --foreground: #172018;
   --card: #ffffff;
+  --card-foreground: #172018;
+  --popover: #ffffff;
   --muted: #eef2e8;
   --muted-foreground: #61705f;
   --primary: #2f6b3b;
   --primary-foreground: #ffffff;
+  --secondary: #e4ecd9;
+  --accent: #dff2d5;
   --border: #dce4d5;
+  --input: #ffffff;
+  --ring: rgba(47, 107, 59, 0.35);
   --danger: #b42318;
   --warning: #b54708;
   --success: #027a48;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #0b120d;
+  --foreground: #f3f8ef;
+  --card: #111b13;
+  --card-foreground: #f3f8ef;
+  --popover: #152018;
+  --muted: #1d2b20;
+  --muted-foreground: #b7c7b2;
+  --primary: #9edb8f;
+  --primary-foreground: #0b120d;
+  --secondary: #233523;
+  --accent: #1f3a22;
+  --border: #2f3f31;
+  --input: #101a12;
+  --ring: rgba(158, 219, 143, 0.45);
+  --danger: #ffb4ab;
+  --warning: #ffd7a3;
+  --success: #9ee6bd;
 }
 
 * {
@@ -23,6 +51,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  text-rendering: optimizeLegibility;
 }
 
 a {
@@ -38,11 +67,15 @@ textarea {
 }
 
 .focus-ring:focus-visible {
-  outline: 3px solid rgba(47, 107, 59, 0.35);
+  outline: 3px solid var(--ring);
   outline-offset: 2px;
 }
 
 .container-page {
   width: min(1120px, calc(100% - 2rem));
   margin-inline: auto;
+}
+
+.safe-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
