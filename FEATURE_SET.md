@@ -89,6 +89,7 @@
 
 - Admin list of public quote requests
 - View request detail
+- Admin review controls for request status, risk level, internal notes, parent/admin approval requirement, and approval timestamp
 - Customer/property details
 - Scope notes
 - Status/risk indicators

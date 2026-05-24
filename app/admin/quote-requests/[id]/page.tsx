@@ -1,16 +1,18 @@
 import { notFound } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Field, Select, Textarea } from "@/components/ui/input";
 import { StatusBadge } from "@/components/status/status-badge";
 import { createClient } from "@/lib/supabase/server";
 import { createEstimateFromQuoteRequest } from "../../estimates/actions";
+import { updateQuoteRequestReview } from "../actions";
 
 export default async function QuoteRequestDetailPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; saved?: string }>;
 }) {
   const { id } = await params;
   const query = await searchParams;
@@ -97,6 +99,7 @@ export default async function QuoteRequestDetailPage({
           <h1 className="text-3xl font-black">Quote request</h1>
           <p className="mt-2 text-[var(--muted-foreground)]">{request.customers?.name} — {request.properties?.address_line_1}</p>
           {query.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-[var(--danger)]">{query.error}</div> : null}
+          {query.saved ? <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-green-700">Review saved.</div> : null}
         </div>
         <form action={createEstimateFromQuoteRequest}>
           <input type="hidden" name="quoteRequestId" value={request.id} />
@@ -119,6 +122,22 @@ export default async function QuoteRequestDetailPage({
         <Card>
           <h2 className="text-xl font-bold">Request status</h2>
           <div className="mt-4 flex gap-2"><StatusBadge status={request.status} /><StatusBadge status={request.risk_level} /></div>
+        </Card>
+        <Card>
+          <h2 className="text-xl font-bold">Admin review</h2>
+          <form action={updateQuoteRequestReview} className="mt-4 grid gap-4">
+            <input type="hidden" name="requestId" value={request.id} />
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Status"><Select name="status" defaultValue={request.status}><option value="new">New</option><option value="needs_review">Needs review</option><option value="needs_more_info">Needs more info</option><option value="site_review_needed">Site review needed</option><option value="estimate_drafted">Estimate drafted</option><option value="estimate_sent">Estimate sent</option><option value="converted_to_job">Converted to job</option><option value="declined">Declined</option><option value="archived">Archived</option></Select></Field>
+              <Field label="Risk"><Select name="riskLevel" defaultValue={request.risk_level}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="decline">Decline</option></Select></Field>
+            </div>
+            <div className="grid gap-2 text-sm">
+              <label><input className="mr-2" type="checkbox" name="parentApprovalRequired" defaultChecked={request.parent_approval_required} /> Parent/admin approval required</label>
+              <label><input className="mr-2" type="checkbox" name="parentApproved" defaultChecked={Boolean(request.parent_approved_at)} /> Parent/admin approved</label>
+            </div>
+            <Field label="Internal notes"><Textarea name="internalNotes" defaultValue={request.internal_notes ?? ""} /></Field>
+            <Button type="submit" variant="outline">Save review</Button>
+          </form>
         </Card>
         <Card>
           <h2 className="text-xl font-bold">Scope notes</h2>
