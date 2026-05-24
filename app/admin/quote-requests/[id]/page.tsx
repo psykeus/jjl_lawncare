@@ -37,6 +37,59 @@ export default async function QuoteRequestDetailPage({
     }),
   );
 
+  const { data: requestServices } = await supabase
+    .from("quote_request_services")
+    .select("id, service_id, notes, estimated_duration_minutes, estimated_price_min, estimated_price_max, sort_order, services(name)")
+    .eq("quote_request_id", id)
+    .order("sort_order");
+
+  const requestServiceRows = (requestServices ?? []) as Array<{
+    id: string;
+    service_id: string | null;
+    notes: string | null;
+    estimated_duration_minutes: number | null;
+    estimated_price_min: number | string | null;
+    estimated_price_max: number | string | null;
+    services: { name: string | null } | { name: string | null }[] | null;
+  }>;
+  const requestServiceIds = requestServiceRows.map((service) => service.id);
+
+  const [{ data: serviceAnswers }, { data: servicePhotoLinks }] = requestServiceIds.length ? await Promise.all([
+    supabase
+      .from("quote_request_service_answers")
+      .select("id, quote_request_service_id, answer_text, service_questions(question_text), service_question_options(label)")
+      .in("quote_request_service_id", requestServiceIds),
+    supabase
+      .from("quote_request_service_photos")
+      .select("id, quote_request_service_id, media_files(id, file_url, file_type, label)")
+      .in("quote_request_service_id", requestServiceIds),
+  ]) : [{ data: [] }, { data: [] }];
+
+  const answersByService = new Map<string, Array<{ question: string; answer: string }>>();
+  for (const answer of serviceAnswers ?? []) {
+    const row = answer as {
+      quote_request_service_id: string;
+      answer_text: string | null;
+      service_questions: { question_text: string | null } | { question_text: string | null }[] | null;
+      service_question_options: { label: string | null } | { label: string | null }[] | null;
+    };
+    const question = Array.isArray(row.service_questions) ? row.service_questions[0] : row.service_questions;
+    const option = Array.isArray(row.service_question_options) ? row.service_question_options[0] : row.service_question_options;
+    answersByService.set(row.quote_request_service_id, [...(answersByService.get(row.quote_request_service_id) ?? []), {
+      question: question?.question_text ?? "Question",
+      answer: option?.label ?? row.answer_text ?? "—",
+    }]);
+  }
+
+  const photosByService = new Map<string, Array<{ id: string; signedUrl: string | null }>>();
+  for (const link of servicePhotoLinks ?? []) {
+    const row = link as { quote_request_service_id: string; media_files: { id: string; file_url: string } | { id: string; file_url: string }[] | null };
+    const file = Array.isArray(row.media_files) ? row.media_files[0] : row.media_files;
+    if (!file) continue;
+    const { data } = await supabase.storage.from("quote-photos").createSignedUrl(file.file_url, 60 * 10);
+    photosByService.set(row.quote_request_service_id, [...(photosByService.get(row.quote_request_service_id) ?? []), { id: file.id, signedUrl: data?.signedUrl ?? null }]);
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
@@ -72,6 +125,47 @@ export default async function QuoteRequestDetailPage({
           <p className="mt-4 whitespace-pre-wrap text-sm text-[var(--muted-foreground)]">{request.customer_notes || "No notes provided."}</p>
         </Card>
       </div>
+      {requestServiceRows.length ? (
+        <Card>
+          <h2 className="text-xl font-bold">Selected services</h2>
+          <div className="mt-4 grid gap-4">
+            {requestServiceRows.map((service) => {
+              const related = Array.isArray(service.services) ? service.services[0] : service.services;
+              const answers = answersByService.get(service.id) ?? [];
+              const photos = photosByService.get(service.id) ?? [];
+              return (
+                <div key={service.id} className="rounded-xl border border-[var(--border)] p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-bold">{related?.name ?? "Selected service"}</h3>
+                      {service.notes ? <p className="mt-1 whitespace-pre-wrap text-sm text-[var(--muted-foreground)]">{service.notes}</p> : null}
+                    </div>
+                    <div className="text-right text-xs text-[var(--muted-foreground)]">
+                      {service.estimated_duration_minutes ? <div>{service.estimated_duration_minutes} estimated minutes</div> : null}
+                      {service.estimated_price_min ? <div>${Number(service.estimated_price_min).toFixed(2)}{service.estimated_price_max ? `–$${Number(service.estimated_price_max).toFixed(2)}` : ""}</div> : null}
+                    </div>
+                  </div>
+                  {answers.length ? (
+                    <dl className="mt-3 grid gap-2 text-sm">
+                      {answers.map((answer, index) => <div key={`${answer.question}-${index}`}><dt className="font-semibold">{answer.question}</dt><dd className="text-[var(--muted-foreground)]">{answer.answer}</dd></div>)}
+                    </dl>
+                  ) : null}
+                  {photos.length ? (
+                    <div className="mt-4 grid grid-cols-3 gap-2">
+                      {photos.map((photo) => photo.signedUrl ? (
+                        <a key={photo.id} href={photo.signedUrl} target="_blank" rel="noreferrer">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={photo.signedUrl} alt="Service upload" className="h-24 w-full rounded-lg object-cover" />
+                        </a>
+                      ) : null)}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      ) : null}
       <Card>
         <h2 className="text-xl font-bold">Photos</h2>
         {signedPhotos.length ? (

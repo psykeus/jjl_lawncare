@@ -69,6 +69,35 @@ export async function createEstimateFromQuoteRequest(formData: FormData) {
     .single();
 
   if (error) redirect(`/admin/quote-requests/${quoteRequestId}?error=${encodeURIComponent(error.message)}`);
+
+  const { data: requestServices } = await supabase
+    .from("quote_request_services")
+    .select("service_id, notes, estimated_price_min, estimated_price_max, sort_order, services(name, unit_label)")
+    .eq("quote_request_id", request.id)
+    .order("sort_order");
+
+  const items = (requestServices ?? []).map((requestService) => {
+    const service = Array.isArray(requestService.services) ? requestService.services[0] : requestService.services;
+    const unitPrice = Number(requestService.estimated_price_min ?? requestService.estimated_price_max ?? 0);
+    return {
+      document_id: estimate.id,
+      service_id: requestService.service_id,
+      item_type: "service",
+      description: [service?.name ?? "Requested service", requestService.notes].filter(Boolean).join(" — "),
+      quantity: 1,
+      unit_label: service?.unit_label ?? null,
+      unit_price: unitPrice,
+      line_total: unitPrice,
+      taxable: true,
+      sort_order: requestService.sort_order ?? 0,
+    };
+  }).filter((item) => item.description);
+
+  if (items.length) {
+    await supabase.from("document_items").insert(items);
+    await recalculateDocument(estimate.id);
+  }
+
   await supabase.from("quote_requests").update({ status: "estimate_drafted" }).eq("id", request.id);
   revalidatePath("/admin/estimates");
   redirect(`/admin/estimates/${estimate.id}`);

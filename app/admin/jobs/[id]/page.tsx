@@ -75,6 +75,13 @@ export default async function AdminJobDetailPage({
                 <Field label="Start"><Input name="scheduledStartTime" type="time" defaultValue={job.scheduled_start_time ?? ""} /></Field>
                 <Field label="End"><Input name="scheduledEndTime" type="time" defaultValue={job.scheduled_end_time ?? ""} /></Field>
               </div>
+              <div className="grid gap-4 md:grid-cols-5">
+                <Field label="Estimated minutes"><Input name="estimatedDurationMinutes" type="number" min="15" defaultValue={job.estimated_duration_minutes ?? 60} /></Field>
+                <Field label="Required crew"><Input name="requiredCrewSize" type="number" min="1" defaultValue={job.required_crew_size ?? 1} /></Field>
+                <Field label="Earliest start"><Input name="earliestStartTime" type="time" defaultValue={job.earliest_start_time ?? ""} /></Field>
+                <Field label="Latest end"><Input name="latestEndTime" type="time" defaultValue={job.latest_end_time ?? ""} /></Field>
+                <Field label="Route priority"><Input name="routePriority" type="number" defaultValue={job.route_priority ?? 0} /></Field>
+              </div>
               <div className="grid gap-2 rounded-xl border border-[var(--border)] p-4 text-sm">
                 <h3 className="font-semibold">Assigned crew</h3>
                 {(crew ?? []).map((member) => <label key={member.id}><input className="mr-2" type="checkbox" name="assignedCrewIds" value={member.id} defaultChecked={assignedCrewIds.has(member.id)} />{member.name ?? member.email}</label>)}

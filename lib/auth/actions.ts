@@ -15,6 +15,20 @@ export async function signInWithPassword(formData: FormData) {
   redirect(redirectTo);
 }
 
+export async function signInWithMagicLink(formData: FormData) {
+  const email = String(formData.get("email") ?? "").trim();
+  const redirectTo = String(formData.get("redirectTo") ?? "/customer/dashboard");
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent(redirectTo)}` },
+  });
+  if (error) redirect(`/auth/login?error=${encodeURIComponent(error.message)}`);
+  redirect("/auth/login?message=Check your email for a login link.");
+}
+
 export async function signUpWithPassword(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();

@@ -6,29 +6,46 @@
 - Homepage popular-service cards are driven by the admin service catalog
 - Services page groups admin-managed services into core services, add-ons/upsells, case-by-case work, and exclusions
 - Pricing page reads public pricing/ranges from admin-managed services
-- Public quote request form
+- Public quote request wizard with guided steps:
+  - Address/service-area check
+  - Clickable service selection
+  - Add-on/upsell selection
+  - Service-specific questions
+  - Contact/timing/terms
 - Required customer/property information
 - Google Places address autocomplete when a browser Maps key is configured
 - Service-area check before quote submission
 - Service selection with support for preselecting a service from public service cards/pricing links
-- Yard condition details
-- Preferred dates
+- Clickable core/case-by-case service cards inside the request form
+- Add-on/upsell panel appears after a core service is selected
+- Dynamic admin-created service questions render on the public request wizard
+- Push-button answers for single-choice, multi-choice, and yes/no questions
+- Short-text and number question support
+- Notes per selected service
+- Photo upload per selected service
+- Required at least one quote photo across the request
+- Preferred dates/time-window capture
 - Customer notes
-- Required quote photos upload
 - Terms acceptance
 - Server-side quote intake creates:
   - Customer
   - Property
   - Quote request
+  - Normalized selected quote-request services
+  - Service-specific answer records
+  - Service-specific photo link records
   - Terms acceptance record
   - Private uploaded quote photos
   - Activity log entry
 - Address geocoding via Google Maps Geocoding API when configured
 - In-area requests are accepted; outside-area requests are blocked with the configured outside-area message
+- Customer request service/answer summary is copied into quote request notes for legacy admin views and map workflows
 
 ## Authentication and roles
 
 - Supabase Auth login/signup
+- Passwordless/magic-link customer login option
+- Auth callback supports a `next` redirect target
 - Role-based app areas:
   - Admin
   - Crew
@@ -70,6 +87,7 @@
 - Customer/property details
 - Scope notes
 - Status/risk indicators
+- Selected services section with per-service notes, answers, estimated workload/price hints, and linked photos
 - Private quote photo previews via signed URLs
 - Create estimate from quote request
 
@@ -89,6 +107,7 @@
 - Public homepage/services/pricing pages are tied to the admin service catalog
 - Admin service-question manager at `/admin/services/[id]/questions`
 - Add/edit/deactivate service-specific intake questions
+- Public request wizard renders active service questions automatically
 - Supported question types:
   - Single-choice buttons
   - Multi-choice buttons
@@ -103,6 +122,7 @@
   - Parent/admin approval flag
   - Sort order and active/inactive status
 - Database support for normalized quote-request services, answers, and per-service photo linking
+- Estimate creation can seed initial estimate line items from normalized quote-request service estimates
 
 ## Estimate workflow
 
@@ -124,6 +144,12 @@
 - Admin job list/detail
 - Schedule date/time
 - Assign crew
+- Job planning fields:
+  - Estimated duration minutes
+  - Required crew size
+  - Earliest start time
+  - Latest end time
+  - Route priority
 - Track status:
   - accepted
   - scheduled
@@ -156,8 +182,22 @@
 - Upload before/after photos
 - View assigned job map/directions
 
-## Admin map and route planning
+## Admin scheduling, route planning, and map
 
+- Admin schedule board at `/admin/schedule`
+- Admin route planner at `/admin/routes`
+- Admin crew availability manager at `/admin/crew/availability`
+- Crew availability records by date, start/end time, max hours, notes, and active status
+- Daily schedule capacity calculations:
+  - Crew capacity minutes
+  - Job workload minutes
+  - Travel buffer minutes
+  - Remaining capacity
+- Overbooking warnings when scheduled workload plus travel exceeds crew availability
+- Crew-size warnings when a job needs more people than available
+- Time-window warnings when the planned route exceeds latest-end constraints
+- Deterministic route timeline using route priority, scheduled/window times, estimated duration, and a travel buffer
+- Slot guidance based on remaining crew-minutes
 - Internal admin job map
 - Google Maps embedded map support
 - Job pins grouped and color-coded by operational bucket:
@@ -259,6 +299,8 @@
 - Service-area schema and policies
 - Service-question/options schema and policies
 - Quote-request service/answer/photo-link schema and policies
+- Job scheduling/workload columns
+- Crew availability schema and policies
 - Private storage buckets:
   - quote-photos
   - job-photos

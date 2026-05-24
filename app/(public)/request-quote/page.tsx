@@ -1,10 +1,7 @@
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { getGoogleMapsBrowserKey } from "@/lib/maps/config";
 import { createClient } from "@/lib/supabase/server";
-import { submitQuoteRequest } from "./actions";
-import { RequestAddressFields } from "./request-address-fields";
+import { RequestQuoteWizard, type WizardService, type WizardServiceQuestion } from "./request-quote-wizard";
 
 export default function RequestQuotePage({ searchParams }: { searchParams: Promise<{ error?: string; submitted?: string; serviceId?: string }> }) {
   return <RequestQuoteContent searchParams={searchParams} />;
@@ -12,7 +9,7 @@ export default function RequestQuotePage({ searchParams }: { searchParams: Promi
 
 async function RequestQuoteContent({ searchParams }: { searchParams: Promise<{ error?: string; submitted?: string; serviceId?: string }> }) {
   const params = await searchParams;
-  const services = await getVisibleServices();
+  const services = await getVisibleServicesWithQuestions();
   const googleMapsBrowserKey = getGoogleMapsBrowserKey();
 
   if (params.submitted) {
@@ -27,61 +24,49 @@ async function RequestQuoteContent({ searchParams }: { searchParams: Promise<{ e
   }
 
   return (
-    <section className="container-page max-w-3xl py-12">
-      <Card>
+    <section className="container-page max-w-5xl py-12">
+      <div className="mb-8">
         <h1 className="text-4xl font-black">Request a quote</h1>
-        <p className="mt-3 text-[var(--muted-foreground)]">Tell us what you need and upload yard photos now so the admin team can estimate and route the job accurately.</p>
-        {params.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm font-medium text-[var(--danger)]">{params.error}</div> : null}
-        <form action={submitQuoteRequest} className="mt-8 grid gap-5">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Name"><Input name="name" required /></Field>
-            <Field label="Email"><Input name="email" type="email" required /></Field>
-            <Field label="Phone"><Input name="phone" required /></Field>
-            <Field label="Service requested">
-              <Select name="requestedServiceId" defaultValue={params.serviceId ?? ""}>
-                <option value="">Not sure / choose later</option>
-                {services.map((service) => (
-                  <option key={service.id} value={service.id}>{service.name}</option>
-                ))}
-              </Select>
-            </Field>
-          </div>
-          <RequestAddressFields apiKey={googleMapsBrowserKey} />
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Yard size"><Input name="yardSize" placeholder="Small, medium, large, not sure" /></Field>
-            <Field label="Grass height"><Input name="grassHeight" placeholder="Normal, tall, overgrown" /></Field>
-          </div>
-          <div className="grid gap-3 rounded-xl border border-[var(--border)] p-4 text-sm">
-            <label><input className="mr-2" type="checkbox" name="debrisPresent" /> Debris/sticks present</label>
-            <label><input className="mr-2" type="checkbox" name="dogWastePresent" /> Dog waste present</label>
-            <label><input className="mr-2" type="checkbox" name="petsPresent" /> Pets on property</label>
-          </div>
-          <Field label="Gate/access notes"><Textarea name="gateAccess" /></Field>
-          <Field label="Preferred dates"><Input name="preferredDates" placeholder="Example: next Saturday morning" /></Field>
-          <Field label="Customer notes"><Textarea name="customerNotes" /></Field>
-          <Field label="Photos" hint="Upload up to 6 photos of the yard or cleanup area. These stay private and attach to admin review and routing.">
-            <Input name="photos" type="file" accept="image/*" multiple required />
-          </Field>
-          <div className="grid gap-3 rounded-xl bg-[var(--muted)] p-4 text-sm">
-            <label><input className="mr-2" type="checkbox" name="termsAccepted" required /> I accept the quote request terms and understand unsafe/out-of-scope jobs may be declined.</label>
-            <Field label="Type your name to accept terms"><Input name="acceptedName" required /></Field>
-          </div>
-          <Button type="submit" size="lg">Submit quote request</Button>
-        </form>
-      </Card>
+        <p className="mt-3 max-w-2xl text-[var(--muted-foreground)]">Use the guided form to check your address, choose services, answer quick service-specific questions, and upload photos for each selected service.</p>
+      </div>
+      <RequestQuoteWizard services={services} initialServiceId={params.serviceId} apiKey={googleMapsBrowserKey} error={params.error} />
     </section>
   );
 }
 
-async function getVisibleServices() {
+async function getVisibleServicesWithQuestions(): Promise<WizardService[]> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)) return [];
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data: services } = await supabase
     .from("services")
-    .select("id, name")
+    .select("id, name, public_description, service_type, pricing_type, base_price, min_price, max_price, unit_label, customer_visible_range, requires_photos, requires_parent_approval, requires_site_review, sort_order")
     .eq("active", true)
     .eq("visible_to_customer", true)
     .neq("service_type", "excluded")
     .order("sort_order");
-  return data ?? [];
+
+  const serviceRows = (services ?? []) as Omit<WizardService, "questions">[];
+  if (!serviceRows.length) return [];
+
+  const { data: questions, error } = await supabase
+    .from("service_questions")
+    .select("id, service_id, question_text, question_type, required, help_text, sort_order, service_question_options(id, question_id, label, value, price_modifier, duration_modifier_minutes, risk_modifier, requires_parent_approval, sort_order, active)")
+    .in("service_id", serviceRows.map((service) => service.id))
+    .eq("active", true)
+    .order("sort_order");
+
+  const questionsByService = new Map<string, WizardServiceQuestion[]>();
+  if (!error) {
+    for (const question of (questions ?? []) as WizardServiceQuestion[]) {
+      const activeOptions = [...(question.service_question_options ?? [])]
+        .filter((option) => option.active !== false)
+        .sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0));
+      questionsByService.set(question.service_id, [...(questionsByService.get(question.service_id) ?? []), { ...question, service_question_options: activeOptions }]);
+    }
+  }
+
+  return serviceRows.map((service) => ({
+    ...service,
+    questions: (questionsByService.get(service.id) ?? []).sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0)),
+  }));
 }
