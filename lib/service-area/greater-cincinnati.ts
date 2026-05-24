@@ -6,6 +6,23 @@ export const GREATER_CINCINNATI_BOUNDS = {
   west: -85.05,
 };
 
+export const GREATER_CINCINNATI_CITIES = [
+  "cincinnati",
+  "norwood",
+  "blue ash",
+  "mason",
+  "loveland",
+  "milford",
+  "madeira",
+  "indian hill",
+  "mariemont",
+  "anderson",
+  "west chester",
+  "fairfield",
+  "covington",
+  "newport",
+];
+
 export function isInGreaterCincinnati(latitude: number | null | undefined, longitude: number | null | undefined) {
   if (latitude == null || longitude == null) return false;
   return (

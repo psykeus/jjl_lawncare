@@ -1,8 +1,10 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
+import { getGoogleMapsBrowserKey } from "@/lib/maps/config";
 import { createClient } from "@/lib/supabase/server";
 import { submitQuoteRequest } from "./actions";
+import { RequestAddressFields } from "./request-address-fields";
 
 export default function RequestQuotePage({ searchParams }: { searchParams: Promise<{ error?: string; submitted?: string; serviceId?: string }> }) {
   return <RequestQuoteContent searchParams={searchParams} />;
@@ -11,6 +13,7 @@ export default function RequestQuotePage({ searchParams }: { searchParams: Promi
 async function RequestQuoteContent({ searchParams }: { searchParams: Promise<{ error?: string; submitted?: string; serviceId?: string }> }) {
   const params = await searchParams;
   const services = await getVisibleServices();
+  const googleMapsBrowserKey = getGoogleMapsBrowserKey();
 
   if (params.submitted) {
     return (
@@ -43,13 +46,7 @@ async function RequestQuoteContent({ searchParams }: { searchParams: Promise<{ e
               </Select>
             </Field>
           </div>
-          <Field label="Address line 1"><Input name="addressLine1" required /></Field>
-          <div className="grid gap-4 md:grid-cols-[1fr_1fr_90px_120px]">
-            <Field label="Address line 2"><Input name="addressLine2" /></Field>
-            <Field label="City"><Input name="city" required /></Field>
-            <Field label="State"><Input name="state" maxLength={2} required /></Field>
-            <Field label="ZIP"><Input name="zip" required /></Field>
-          </div>
+          <RequestAddressFields apiKey={googleMapsBrowserKey} />
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Yard size"><Input name="yardSize" placeholder="Small, medium, large, not sure" /></Field>
             <Field label="Grass height"><Input name="grassHeight" placeholder="Normal, tall, overgrown" /></Field>

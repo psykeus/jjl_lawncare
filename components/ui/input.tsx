@@ -1,9 +1,10 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
+export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(function Input({ className, ...props }, ref) {
   return (
     <input
+      ref={ref}
       className={cn(
         "focus-ring h-10 w-full rounded-lg border border-[var(--border)] bg-white px-3 text-sm",
         className,
@@ -11,11 +12,12 @@ export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInp
       {...props}
     />
   );
-}
+});
 
-export function Textarea({ className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea({ className, ...props }, ref) {
   return (
     <textarea
+      ref={ref}
       className={cn(
         "focus-ring min-h-28 w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm",
         className,
@@ -23,11 +25,12 @@ export function Textarea({ className, ...props }: React.TextareaHTMLAttributes<H
       {...props}
     />
   );
-}
+});
 
-export function Select({ className, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
+export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(function Select({ className, ...props }, ref) {
   return (
     <select
+      ref={ref}
       className={cn(
         "focus-ring h-10 w-full rounded-lg border border-[var(--border)] bg-white px-3 text-sm",
         className,
@@ -35,7 +38,7 @@ export function Select({ className, ...props }: React.SelectHTMLAttributes<HTMLS
       {...props}
     />
   );
-}
+});
 
 export function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (

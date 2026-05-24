@@ -11,6 +11,7 @@ const navByRole: Record<AppRole, Array<[string, string]>> = {
     ["Estimates", "/admin/estimates"],
     ["Jobs", "/admin/jobs"],
     ["Map", "/admin/map"],
+    ["Service Areas", "/admin/service-areas"],
     ["Invoices", "/admin/invoices"],
     ["Payments", "/admin/payments"],
     ["Expenses", "/admin/expenses"],

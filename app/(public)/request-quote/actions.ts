@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { geocodeAddress } from "@/lib/maps/geocode";
+import { checkServiceArea } from "@/lib/service-area/check";
 import { quoteRequestSchema } from "@/lib/validations/quote-request";
 
 export async function submitQuoteRequest(formData: FormData) {
@@ -16,6 +17,8 @@ export async function submitQuoteRequest(formData: FormData) {
     city: formData.get("city"),
     state: formData.get("state"),
     zip: formData.get("zip"),
+    latitude: formData.get("latitude"),
+    longitude: formData.get("longitude"),
     requestedServiceId: formData.get("requestedServiceId"),
     yardSize: formData.get("yardSize"),
     grassHeight: formData.get("grassHeight"),
@@ -36,7 +39,14 @@ export async function submitQuoteRequest(formData: FormData) {
   const input = parsed.data;
   const supabase = createAdminClient();
   const fullAddress = `${input.addressLine1}, ${input.city}, ${input.state} ${input.zip}`;
-  const coordinates = await geocodeAddress(fullAddress);
+  const geocodedCoordinates = input.latitude != null && input.longitude != null ? { latitude: input.latitude, longitude: input.longitude } : await geocodeAddress(fullAddress);
+  const areaCheck = await checkServiceArea({
+    latitude: geocodedCoordinates?.latitude ?? null,
+    longitude: geocodedCoordinates?.longitude ?? null,
+    city: input.city,
+    zip: input.zip,
+  });
+  if (!areaCheck.inside) redirect(`/request-quote?error=${encodeURIComponent(areaCheck.message)}`);
 
   const { data: customer, error: customerError } = await supabase
     .from("customers")
@@ -54,8 +64,8 @@ export async function submitQuoteRequest(formData: FormData) {
       city: input.city,
       state: input.state.toUpperCase(),
       zip: input.zip,
-      latitude: coordinates?.latitude ?? null,
-      longitude: coordinates?.longitude ?? null,
+      latitude: geocodedCoordinates?.latitude ?? null,
+      longitude: geocodedCoordinates?.longitude ?? null,
       gate_notes: input.gateAccess || null,
       yard_size: input.yardSize || null,
       active: true,

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getGoogleMapsBrowserKey } from "@/lib/maps/config";
-import { isInGreaterCincinnati } from "@/lib/service-area/greater-cincinnati";
+import { checkServiceArea } from "@/lib/service-area/check";
 import { createClient } from "@/lib/supabase/server";
 import { AdminJobMap, type AdminMapJob } from "./admin-job-map";
 import { geocodeUnmappedProperties } from "./actions";
@@ -89,8 +89,9 @@ export default async function AdminMapPage({ searchParams }: { searchParams: Pro
     };
   });
 
-  const outsideAreaCount = rawMapJobs.filter((job) => job.latitude && job.longitude && !isInGreaterCincinnati(job.latitude, job.longitude)).length;
-  const mapJobs = rawMapJobs.filter((job) => !job.latitude || !job.longitude || isInGreaterCincinnati(job.latitude, job.longitude));
+  const areaResults = await Promise.all(rawMapJobs.map((job) => checkServiceArea({ latitude: job.latitude, longitude: job.longitude, city: job.city, zip: job.zip })));
+  const outsideAreaCount = areaResults.filter((result) => !result.inside).length;
+  const mapJobs = rawMapJobs.filter((_, index) => areaResults[index]?.inside);
   const unmappedCount = mapJobs.filter((job) => !job.latitude || !job.longitude).length;
   const googleMapsBrowserKey = getGoogleMapsBrowserKey();
 
