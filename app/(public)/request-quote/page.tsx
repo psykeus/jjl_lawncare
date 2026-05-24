@@ -29,7 +29,7 @@ async function RequestQuoteContent({ searchParams }: { searchParams: Promise<{ e
         <h1 className="text-4xl font-black">Request a quote</h1>
         <p className="mt-3 text-[var(--muted-foreground)]">Tell us what you need and upload yard photos now so the admin team can estimate and route the job accurately.</p>
         {params.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm font-medium text-[var(--danger)]">{params.error}</div> : null}
-        <form action={submitQuoteRequest} encType="multipart/form-data" className="mt-8 grid gap-5">
+        <form action={submitQuoteRequest} className="mt-8 grid gap-5">
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Name"><Input name="name" required /></Field>
             <Field label="Email"><Input name="email" type="email" required /></Field>

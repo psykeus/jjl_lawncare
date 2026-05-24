@@ -65,7 +65,7 @@ export default async function InvoiceDetailPage({
 
           <Card>
             <h2 className="text-xl font-bold">Record payment</h2>
-            <form action={recordInvoicePayment} encType="multipart/form-data" className="mt-4 grid gap-4">
+            <form action={recordInvoicePayment} className="mt-4 grid gap-4">
               <input type="hidden" name="documentId" value={invoice.id} />
               <input type="hidden" name="jobId" value={invoice.job_id ?? ""} />
               <Field label="Amount"><Input name="amount" type="number" step="0.01" min="0" defaultValue={invoice.balance_due ?? invoice.total} required /></Field>

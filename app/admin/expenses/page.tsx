@@ -30,7 +30,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
       <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
         <Card>
           <h2 className="text-xl font-bold">Add expense</h2>
-          <form action={createExpense} encType="multipart/form-data" className="mt-4 grid gap-4">
+          <form action={createExpense} className="mt-4 grid gap-4">
             <Field label="Category"><Select name="category" required>{categories.map((category) => <option key={category} value={category}>{category}</option>)}</Select></Field>
             <Field label="Amount"><Input name="amount" type="number" step="0.01" min="0" required /></Field>
             <Field label="Date"><Input name="expenseDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} /></Field>

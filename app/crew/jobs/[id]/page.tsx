@@ -76,7 +76,7 @@ export default async function CrewJobDetailPage({
 
           <Card>
             <h2 className="text-xl font-bold">Photos</h2>
-            <form action={uploadJobPhoto} encType="multipart/form-data" className="mt-4 grid gap-4">
+            <form action={uploadJobPhoto} className="mt-4 grid gap-4">
               <input type="hidden" name="jobId" value={job.id} />
               <Field label="Photo label"><Select name="label"><option value="before">Before</option><option value="after">After</option><option value="photo">Other</option></Select></Field>
               <Field label="Photos"><Input name="photos" type="file" accept="image/*" multiple /></Field>
