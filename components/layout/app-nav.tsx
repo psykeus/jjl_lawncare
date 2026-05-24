@@ -71,15 +71,15 @@ export function MobileNavButton({ role }: { role: AppRole }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <>
-      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)} aria-label="Open navigation menu">
+    <div className="relative">
+      <Button type="button" variant="outline" size="sm" onClick={() => setOpen((current) => !current)} aria-expanded={open} aria-haspopup="menu" aria-label="Open navigation menu">
         <Menu className="h-4 w-4" aria-hidden="true" />
         Menu
       </Button>
       {open ? (
-        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Navigation menu">
-          <button type="button" className="absolute inset-0 bg-black/45" aria-label="Close navigation menu" onClick={() => setOpen(false)} />
-          <div className="absolute inset-y-0 left-0 flex w-[min(92vw,360px)] flex-col overflow-y-auto border-r border-[var(--border)] bg-[var(--card)] p-4 shadow-2xl">
+        <>
+          <button type="button" className="fixed inset-0 z-40 cursor-default" aria-label="Close navigation menu" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full z-50 mt-2 w-[min(92vw,380px)] max-h-[calc(100vh-5rem)] overflow-y-auto rounded-3xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-2xl" role="menu" aria-label="Navigation menu">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--primary)]">JJ&amp;L</p>
@@ -89,15 +89,15 @@ export function MobileNavButton({ role }: { role: AppRole }) {
                 <X className="h-5 w-5" aria-hidden="true" />
               </Button>
             </div>
-            <nav className="grid gap-3 pb-4" aria-label="Mobile navigation">
+            <nav className="grid gap-3 pb-2" aria-label="Navigation links">
               {navGroupsByRole[role].map((group, index) => (
                 <NavGroupSection key={group.label} group={group} defaultOpen={index === 0} onNavigate={() => setOpen(false)} />
               ))}
             </nav>
           </div>
-        </div>
+        </>
       ) : null}
-    </>
+    </div>
   );
 }
 
