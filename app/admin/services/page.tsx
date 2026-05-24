@@ -43,6 +43,7 @@ export default async function AdminServicesPage({ searchParams }: { searchParams
                 <td className="p-3">
                   <div className="flex flex-wrap gap-2">
                     <ButtonLink href={`/admin/services/${service.id}/edit`} size="sm" variant="outline">Edit</ButtonLink>
+                    <ButtonLink href={`/admin/services/${service.id}/questions`} size="sm" variant="outline">Questions</ButtonLink>
                     {service.active ? (
                       <form action={deactivateService}>
                         <input type="hidden" name="id" value={service.id} />
