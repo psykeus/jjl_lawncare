@@ -1278,3 +1278,22 @@ A Coolify project and application have been created for this repo.
 * Last deployment checked: healthy, HTTP 200.
 
 The Coolify API token was intentionally **not** written to this file or committed to git. Keep it in Coolify/CI/user-level secrets only.
+
+## Admin dashboard/access expansion
+
+The admin area now includes a command-center dashboard that groups every admin workflow in one place:
+
+* Intake and sales: quote requests, estimates, customers, direct job entry.
+* Scheduling and field operations: schedule board, slot finder, route planner, map, crew availability, jobs.
+* Money and reporting: invoices, payments, expenses, earnings.
+* Platform administration: users/access rights, services, service areas, checklists, terms, settings.
+
+A dedicated `/admin/users` page was added for platform access management:
+
+* Create admin, crew, or customer login users.
+* Change a user's role/access rights.
+* Activate/unban or deactivate/ban users.
+* Prevent admins from accidentally banning/demoting themselves.
+* Show user analytics: linked customer records, assigned jobs, open crew jobs, activity count, last activity, and last sign-in.
+
+Banning is implemented through the existing `profiles.active` access check plus Supabase Auth admin ban duration so banned users are blocked at app access and auth levels.

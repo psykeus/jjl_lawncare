@@ -69,11 +69,13 @@ The MVP foundation and the first expansion pass are in place:
 - Clickable service selection, targeted add-on upsells, service-specific questions, per-service notes, and per-service photo uploads
 - Auth pages/actions with password and customer magic-link login
 - Admin/customer/crew route groups
+- Admin command center dashboard with grouped operational links, pipeline metrics, user/access analytics, and recent work queues
 - Supabase schema/RLS/seed data
 - Pricing and earnings calculation helpers
 - Editable admin services/pricing/homepage/workload forms
 - Admin service question and targeted upsell managers
 - Editable admin settings forms
+- Admin user management for creating users, changing roles/access rights, banning/unbanning accounts, and viewing user activity analytics
 - Draft estimate builder with line items and totals
 - Quote-request service answers/photos shown in admin request detail
 - Customer estimate list/detail pages
