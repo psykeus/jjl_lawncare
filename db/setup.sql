@@ -312,8 +312,6 @@ create trigger set_payments_updated_at before update on public.payments for each
 create trigger set_expenses_updated_at before update on public.expenses for each row execute function public.set_updated_at();
 create trigger set_terms_versions_updated_at before update on public.terms_versions for each row execute function public.set_updated_at();
 create trigger set_checklist_templates_updated_at before update on public.checklist_templates for each row execute function public.set_updated_at();
-
-
 -- Auth helpers and RLS policies
 create or replace function public.current_profile_id()
 returns uuid
@@ -498,8 +496,6 @@ create policy "settings public selected read" on public.settings for select usin
 
 create policy "activity admin read" on public.activity_log for select using (public.is_admin());
 create policy "activity admin insert" on public.activity_log for insert with check (public.is_admin() or actor_id = public.current_profile_id() or actor_id is null);
-
-
 -- Link existing customer records to a newly-created customer profile by matching email.
 create or replace function public.handle_new_user()
 returns trigger
@@ -528,8 +524,6 @@ begin
   return new;
 end;
 $$;
-
-
 -- Private storage buckets and access policies for MVP uploads.
 -- Public quote intake uses the service role from server actions; authenticated reads are still RLS-scoped here.
 
@@ -661,8 +655,6 @@ on storage.objects for all
 to authenticated
 using (bucket_id = 'settings-assets' and public.is_admin())
 with check (bucket_id = 'settings-assets' and public.is_admin());
-
-
 -- Admin-managed service areas for public request validation and map planning
 create table if not exists public.service_areas (
   id uuid primary key default gen_random_uuid(),
@@ -718,8 +710,6 @@ on conflict (name) do update set
   active = excluded.active,
   sort_order = excluded.sort_order,
   updated_at = now();
-
-
 -- Admin-managed service intake questions, options, and normalized request-service details
 create table if not exists public.service_questions (
   id uuid primary key default gen_random_uuid(),
@@ -855,8 +845,6 @@ join (values
 ) as v(question_text, label, value, duration_modifier_minutes, sort_order) on v.question_text = q.question_text
 where s.name = 'Basic Cut'
 on conflict do nothing;
-
-
 -- Scheduling capacity, workload, and route-planning support
 alter table public.jobs add column if not exists estimated_duration_minutes integer not null default 60;
 alter table public.jobs add column if not exists required_crew_size integer not null default 1;
@@ -885,8 +873,6 @@ create policy "crew availability admin all" on public.crew_availability for all 
 
 drop policy if exists "crew availability own read" on public.crew_availability;
 create policy "crew availability own read" on public.crew_availability for select using (profile_id = public.current_profile_id() or public.is_admin());
-
-
 -- Public catalog display, workload defaults, and targeted service upsells
 alter table public.services add column if not exists featured_on_homepage boolean not null default false;
 alter table public.services add column if not exists homepage_title text;
@@ -963,8 +949,6 @@ from (values
 join public.services core on core.name = v.core_name
 join public.services add_on on add_on.name = v.upsell_name
 on conflict (core_service_id, upsell_service_id) do update set sort_order = excluded.sort_order, active = true, updated_at = now();
-
-
 -- Expenses are internal/admin/crew records and should not be readable by customers.
 drop policy if exists "expenses crew own read" on public.expenses;
 
@@ -979,8 +963,19 @@ create policy "expenses crew own read" on public.expenses for select using (
     )
   )
 );
+-- Allow common phone/browser image formats for upload buckets.
+-- The Next.js server action body limit is configured separately in next.config.ts.
+update storage.buckets
+set
+  file_size_limit = 8388608,
+  allowed_mime_types = array['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif', 'image/avif']
+where id in ('quote-photos', 'job-photos', 'settings-assets');
 
-
+update storage.buckets
+set
+  file_size_limit = 8388608,
+  allowed_mime_types = array['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif', 'image/avif', 'application/pdf']
+where id in ('receipts', 'payment-proofs');
 -- Starter data for JJL Lawn Services
 insert into public.service_categories (name, description, sort_order) values
   ('Lawn mowing', 'Mowing, trimming, edging, and blowing clippings.', 10),

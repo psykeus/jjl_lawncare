@@ -1300,3 +1300,18 @@ A dedicated `/admin/users` page was added for platform access management:
 Banning is implemented through the existing `profiles.active` access check plus Supabase Auth admin ban duration so banned users are blocked at app access and auth levels.
 
 The admin dashboard/access expansion was deployed to Coolify after commit `822ce35`. `NEXT_PUBLIC_APP_URL` in Coolify was updated to `https://jjl.brandgears.com`, and the production site returned HTTP 200 after deployment.
+
+## Upload error fix
+
+Picture upload errors were addressed by raising the Next.js Server Action body size limit to `40mb` and expanding Supabase Storage bucket MIME allowlists for common phone/browser image formats:
+
+* `image/jpeg`
+* `image/jpg`
+* `image/png`
+* `image/webp`
+* `image/gif`
+* `image/heic`
+* `image/heif`
+* `image/avif`
+
+Receipt and payment-proof buckets also continue to allow `application/pdf`. The online Supabase buckets were updated via the Storage API, and migration `010_expand_upload_image_support.sql` plus `db/setup.sql` now document the bucket changes for future rebuilds.

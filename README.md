@@ -32,9 +32,10 @@ Apply migrations in order to a Supabase project, or paste/run `db/setup.sql` onc
 7. `db/migrations/007_scheduling_planning.sql`
 8. `db/migrations/008_service_catalog_planning_fields.sql`
 9. `db/migrations/009_tighten_expense_rls.sql`
-10. `db/seed/001_seed_defaults.sql`
+10. `db/migrations/010_expand_upload_image_support.sql`
+11. `db/seed/001_seed_defaults.sql`
 
-The storage migration creates private Supabase Storage buckets for quote photos, job photos, receipts, payment proofs, and settings assets. Later migrations add managed service areas, service-specific intake questions, targeted upsells, service workload defaults, crew availability, route/schedule planning fields, and tighter expense RLS.
+The storage migrations create private Supabase Storage buckets for quote photos, job photos, receipts, payment proofs, and settings assets. Later migrations add managed service areas, service-specific intake questions, targeted upsells, service workload defaults, crew availability, route/schedule planning fields, tighter expense RLS, and expanded phone/browser image MIME support.
 
 ## Validation and QA
 

@@ -331,6 +331,8 @@
   - payment-proofs
   - settings-assets
 - Scoped storage policies
+- Upload support for common phone/browser image MIME types including JPEG/JPG, PNG, WebP, GIF, HEIC/HEIF, and AVIF
+- Next.js server action upload body limit raised to support several per-service photos up to the configured bucket file-size limit
 - Combined `db/setup.sql` for dashboard SQL setup, now including service-area and service-question migrations
 
 ## Validation and QA
