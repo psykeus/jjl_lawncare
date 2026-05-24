@@ -181,7 +181,7 @@
 
 ## Crew workflow
 
-- Crew dashboard
+- Live crew dashboard with today/open job counts, assigned job list, and rough paid-share summary
 - Assigned jobs list
 - Assigned job detail
 - View customer/property/job notes
@@ -191,6 +191,7 @@
 - Mark job complete
 - Upload before/after photos
 - View assigned job map/directions
+- Live crew earnings page with paid revenue, expenses, reserves, and estimated per-job crew share
 
 ## Admin scheduling, route planning, and map
 
