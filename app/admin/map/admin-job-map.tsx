@@ -23,6 +23,8 @@ export type AdminMapJob = {
   latitude: number | null;
   longitude: number | null;
   serviceName: string | null;
+  serviceSummary: string | null;
+  answerSummary: string | null;
   requestedWork: string | null;
   scopeIncluded: string | null;
   preferredDates: string | null;
@@ -102,7 +104,7 @@ function markerContent(job: AdminMapJob) {
       <strong>${job.customerName}</strong><br />
       <span>${job.address}, ${job.city}</span><br />
       <span>Status: ${job.status.replaceAll("_", " ")}</span><br />
-      <span>Work: ${(job.serviceName ?? job.scopeIncluded ?? job.requestedWork ?? "Job").slice(0, 100)}</span>
+      <span>Work: ${(job.serviceSummary ?? job.serviceName ?? job.scopeIncluded ?? job.requestedWork ?? "Job").slice(0, 160)}</span>
       ${photo}
       <div style="margin-top:8px"><a href="/admin/jobs/${job.id}">Open job</a></div>
     </div>
@@ -255,7 +257,8 @@ export function AdminJobMap({ jobs, apiKey }: { jobs: AdminMapJob[]; apiKey?: st
             </div>
             <dl className="mt-4 grid gap-2 text-sm">
               <div><dt className="font-semibold">Scheduled</dt><dd>{formatDate(selectedJob.scheduledDate)} {selectedJob.scheduledStartTime ?? ""}</dd></div>
-              <div><dt className="font-semibold">Requested work</dt><dd className="whitespace-pre-wrap text-[var(--muted-foreground)]">{selectedJob.serviceName ?? "Service"}: {selectedJob.requestedWork ?? selectedJob.scopeIncluded ?? "No request notes."}</dd></div>
+              <div><dt className="font-semibold">Requested work</dt><dd className="whitespace-pre-wrap text-[var(--muted-foreground)]">{selectedJob.serviceSummary ?? selectedJob.serviceName ?? "Service"}: {selectedJob.requestedWork ?? selectedJob.scopeIncluded ?? "No request notes."}</dd></div>
+              {selectedJob.answerSummary ? <div><dt className="font-semibold">Service answers</dt><dd className="whitespace-pre-wrap text-[var(--muted-foreground)]">{selectedJob.answerSummary}</dd></div> : null}
               <div><dt className="font-semibold">Yard</dt><dd>{selectedJob.yardSize ?? "—"} · Grass: {selectedJob.grassHeight ?? "—"}</dd></div>
               <div><dt className="font-semibold">Preferred dates</dt><dd>{selectedJob.preferredDates ?? "—"}</dd></div>
             </dl>
@@ -278,7 +281,7 @@ export function AdminJobMap({ jobs, apiKey }: { jobs: AdminMapJob[]; apiKey?: st
               <button key={job.id} type="button" onClick={() => setSelectedJobId(job.id)} className="block w-full p-4 text-left hover:bg-[var(--muted)]">
                 <div className="flex items-start justify-between gap-3"><span className="font-semibold">{index + 1}. {job.customerName}</span><StatusBadge status={job.status} /></div>
                 <p className="mt-1 text-sm text-[var(--muted-foreground)]">{job.address}, {job.city}</p>
-                <p className="mt-1 line-clamp-2 text-xs text-[var(--muted-foreground)]">{job.serviceName ?? "Work"}: {job.requestedWork ?? job.scopeIncluded ?? "No notes"}</p>
+                <p className="mt-1 line-clamp-2 text-xs text-[var(--muted-foreground)]">{job.serviceSummary ?? job.serviceName ?? "Work"}: {job.answerSummary ?? job.requestedWork ?? job.scopeIncluded ?? "No notes"}</p>
               </button>
             ))}
             {routableJobs.length ? null : <div className="p-4 text-sm text-[var(--muted-foreground)]">No mapped jobs yet.</div>}

@@ -29,6 +29,21 @@ type QuoteRequestRow = {
   services: RelatedRow<{ name: string | null }>;
 };
 
+type RequestServiceRow = {
+  id: string;
+  quote_request_id: string;
+  notes: string | null;
+  estimated_duration_minutes: number | null;
+  services: RelatedRow<{ name: string | null }>;
+};
+
+type RequestAnswerRow = {
+  quote_request_service_id: string;
+  answer_text: string | null;
+  service_questions: RelatedRow<{ question_text: string | null }>;
+  service_question_options: RelatedRow<{ label: string | null }>;
+};
+
 export default async function AdminMapPage({ searchParams }: { searchParams: Promise<{ error?: string; geocoded?: string }> }) {
   const params = await searchParams;
   const supabase = await createClient();
@@ -41,16 +56,37 @@ export default async function AdminMapPage({ searchParams }: { searchParams: Pro
   const jobRows = (jobs ?? []) as JobRow[];
   const quoteRequestIds = Array.from(new Set(jobRows.map((job) => one(job.estimate)?.quote_request_id).filter((id): id is string => Boolean(id))));
 
-  const [{ data: quoteRequests }, { data: mediaFiles }] = await Promise.all([
+  const [{ data: quoteRequests }, { data: mediaFiles }, { data: requestServices }] = await Promise.all([
     quoteRequestIds.length
       ? supabase.from("quote_requests").select("id, customer_notes, preferred_dates, yard_size, grass_height, services(name)").in("id", quoteRequestIds)
       : Promise.resolve({ data: [] as QuoteRequestRow[] }),
     quoteRequestIds.length
       ? supabase.from("media_files").select("id, related_id, file_url").eq("related_type", "quote_request").in("related_id", quoteRequestIds).order("created_at", { ascending: true })
       : Promise.resolve({ data: [] as { id: string; related_id: string; file_url: string }[] }),
+    quoteRequestIds.length
+      ? supabase.from("quote_request_services").select("id, quote_request_id, notes, estimated_duration_minutes, services(name)").in("quote_request_id", quoteRequestIds).order("sort_order")
+      : Promise.resolve({ data: [] as RequestServiceRow[] }),
   ]);
 
   const quoteById = new Map<string, QuoteRequestRow>((quoteRequests ?? []).map((request) => [request.id, request as QuoteRequestRow]));
+  const requestServiceRows = (requestServices ?? []) as RequestServiceRow[];
+  const requestServiceIds = requestServiceRows.map((service) => service.id);
+  const { data: requestAnswers } = requestServiceIds.length
+    ? await supabase.from("quote_request_service_answers").select("quote_request_service_id, answer_text, service_questions(question_text), service_question_options(label)").in("quote_request_service_id", requestServiceIds)
+    : { data: [] as RequestAnswerRow[] };
+
+  const answersByRequestService = new Map<string, string[]>();
+  for (const answer of (requestAnswers ?? []) as RequestAnswerRow[]) {
+    const question = one(answer.service_questions)?.question_text ?? "Question";
+    const value = one(answer.service_question_options)?.label ?? answer.answer_text ?? "—";
+    answersByRequestService.set(answer.quote_request_service_id, [...(answersByRequestService.get(answer.quote_request_service_id) ?? []), `${question}: ${value}`]);
+  }
+
+  const servicesByQuoteId = new Map<string, RequestServiceRow[]>();
+  for (const service of requestServiceRows) {
+    servicesByQuoteId.set(service.quote_request_id, [...(servicesByQuoteId.get(service.quote_request_id) ?? []), service]);
+  }
+
   const photosByQuoteId = new Map<string, string[]>();
   for (const file of mediaFiles ?? []) {
     const { data } = await supabase.storage.from("quote-photos").createSignedUrl(file.file_url, 60 * 10);
@@ -64,6 +100,15 @@ export default async function AdminMapPage({ searchParams }: { searchParams: Pro
     const estimate = one(job.estimate);
     const quote = estimate?.quote_request_id ? quoteById.get(estimate.quote_request_id) : undefined;
     const service = one(quote?.services ?? null);
+    const normalizedServices = estimate?.quote_request_id ? (servicesByQuoteId.get(estimate.quote_request_id) ?? []) : [];
+    const serviceSummary = normalizedServices.length
+      ? normalizedServices.map((item) => {
+        const relatedService = one(item.services);
+        const duration = item.estimated_duration_minutes ? ` (${item.estimated_duration_minutes} min)` : "";
+        return `${relatedService?.name ?? "Service"}${duration}${item.notes ? ` — ${item.notes}` : ""}`;
+      }).join("; ")
+      : null;
+    const answerSummary = normalizedServices.flatMap((item) => answersByRequestService.get(item.id) ?? []).join("\n") || null;
     return {
       id: job.id,
       status: job.status,
@@ -78,6 +123,8 @@ export default async function AdminMapPage({ searchParams }: { searchParams: Pro
       latitude: property?.latitude ? Number(property.latitude) : null,
       longitude: property?.longitude ? Number(property.longitude) : null,
       serviceName: service?.name ?? null,
+      serviceSummary,
+      answerSummary,
       requestedWork: quote?.customer_notes ?? job.customer_visible_notes,
       scopeIncluded: estimate?.scope_included ?? null,
       preferredDates: quote?.preferred_dates ?? null,

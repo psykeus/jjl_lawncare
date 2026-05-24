@@ -72,7 +72,13 @@ export default async function AdminSchedulePage({ searchParams }: { searchParams
       {capacity.warnings.length ? <Card className="border-red-200 bg-red-50"><h2 className="font-bold text-[var(--danger)]">Warnings</h2><ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-red-900">{capacity.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></Card> : <Card className="border-green-200 bg-green-50 text-sm text-green-800">No overbooking warnings for {formatDate(date)}.</Card>}
 
       <Card>
-        <h2 className="text-xl font-bold">Potential time-slot finder</h2>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-bold">Potential time-slot finder</h2>
+            <p className="mt-1 text-sm text-[var(--muted-foreground)]">Check this day or scan multiple days for an opening.</p>
+          </div>
+          <Link href={`/admin/schedule/slots?duration=${newDuration}&crew=${newCrew}`} className="text-sm font-semibold text-[var(--primary)]">Scan next days</Link>
+        </div>
         <form className="mt-4 grid gap-3 md:grid-cols-[1fr_140px_120px_auto]">
           <label className="grid gap-2 text-sm font-medium">Date<input className="h-10 rounded-lg border border-[var(--border)] px-3 text-sm" name="date" type="date" defaultValue={date} /></label>
           <label className="grid gap-2 text-sm font-medium">Minutes<input className="h-10 rounded-lg border border-[var(--border)] px-3 text-sm" name="duration" type="number" defaultValue={newDuration} min="15" /></label>
