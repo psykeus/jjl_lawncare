@@ -67,29 +67,17 @@ function NavGroupSection({ group, defaultOpen = false, onNavigate }: { group: Na
   );
 }
 
-export function DesktopSidebarNav({ role }: { role: AppRole }) {
-  return (
-    <aside className="hidden max-h-[calc(100vh-5rem)] overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-sm lg:sticky lg:top-4 lg:block lg:self-start">
-      <nav className="grid gap-3" aria-label="Main navigation">
-        {navGroupsByRole[role].map((group, index) => (
-          <NavGroupSection key={group.label} group={group} defaultOpen={index === 0} />
-        ))}
-      </nav>
-    </aside>
-  );
-}
-
 export function MobileNavButton({ role }: { role: AppRole }) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)} className="lg:hidden" aria-label="Open navigation menu">
+      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)} aria-label="Open navigation menu">
         <Menu className="h-4 w-4" aria-hidden="true" />
         Menu
       </Button>
       {open ? (
-        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Navigation menu">
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Navigation menu">
           <button type="button" className="absolute inset-0 bg-black/45" aria-label="Close navigation menu" onClick={() => setOpen(false)} />
           <div className="absolute inset-y-0 left-0 flex w-[min(92vw,360px)] flex-col overflow-y-auto border-r border-[var(--border)] bg-[var(--card)] p-4 shadow-2xl">
             <div className="mb-4 flex items-center justify-between gap-3">

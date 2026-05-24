@@ -9,6 +9,19 @@ import { geocodeAddress } from "@/lib/maps/geocode";
 import { checkServiceArea } from "@/lib/service-area/check";
 import { quoteRequestSchema } from "@/lib/validations/quote-request";
 
+const maxQuotePhotoBytes = 20 * 1024 * 1024;
+const maxQuotePhotoTotalBytes = 35 * 1024 * 1024;
+const imageMimeByExtension: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+  heic: "image/heic",
+  heif: "image/heif",
+  avif: "image/avif",
+};
+
 const selectedAnswerSchema = z.object({
   questionId: z.string().uuid(),
   optionIds: z.array(z.string().uuid()).optional().default([]),
@@ -105,27 +118,52 @@ async function getSignedInProfileId(email: string) {
   return (profileByEmail?.id as string | undefined) ?? null;
 }
 
-async function uploadQuotePhoto({ supabase, requestId, serviceRequestId, photo }: { supabase: ReturnType<typeof createAdminClient>; requestId: string; serviceRequestId?: string; photo: File }) {
-  if (!photo.type.startsWith("image/")) return null;
-  if (photo.size > 8 * 1024 * 1024) return null;
+function getPhotoExtension(photo: File) {
+  const rawExtension = photo.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "";
+  if (rawExtension === "jpg" || rawExtension === "jpeg" || rawExtension === "png" || rawExtension === "webp" || rawExtension === "gif" || rawExtension === "heic" || rawExtension === "heif" || rawExtension === "avif") return rawExtension;
+  const extensionFromType = Object.entries(imageMimeByExtension).find(([, mime]) => mime === photo.type)?.[0];
+  return extensionFromType ?? "jpg";
+}
 
-  const extension = photo.name.split(".").pop()?.toLowerCase() || "jpg";
+function getPhotoContentType(photo: File) {
+  if (photo.type.startsWith("image/")) return photo.type;
+  const extension = getPhotoExtension(photo);
+  return imageMimeByExtension[extension] ?? null;
+}
+
+function validateQuotePhotos(photos: File[]) {
+  const totalBytes = photos.reduce((sum, photo) => sum + photo.size, 0);
+  if (totalBytes > maxQuotePhotoTotalBytes) return "The selected photos are over 35MB total. Please remove a few photos or upload smaller versions.";
+  for (const photo of photos) {
+    if (photo.size > maxQuotePhotoBytes) return `${photo.name || "One photo"} is larger than 20MB. Please upload a smaller photo or lower-resolution version.`;
+    if (!getPhotoContentType(photo)) return `${photo.name || "One upload"} is not a supported image. Please upload JPEG, PNG, WebP, HEIC, GIF, or AVIF.`;
+  }
+  return null;
+}
+
+async function uploadQuotePhoto({ supabase, requestId, serviceRequestId, photo }: { supabase: ReturnType<typeof createAdminClient>; requestId: string; serviceRequestId?: string; photo: File }) {
+  const contentType = getPhotoContentType(photo);
+  if (!contentType) return { mediaId: null, error: `${photo.name || "One upload"} is not a supported image type.` };
+  if (photo.size > maxQuotePhotoBytes) return { mediaId: null, error: `${photo.name || "One photo"} is larger than 20MB.` };
+
+  const extension = getPhotoExtension(photo);
   const storagePath = serviceRequestId ? `${requestId}/${serviceRequestId}/${randomUUID()}.${extension}` : `${requestId}/${randomUUID()}.${extension}`;
   const { error: uploadError } = await supabase.storage
     .from("quote-photos")
-    .upload(storagePath, photo, { contentType: photo.type, upsert: false });
+    .upload(storagePath, photo, { contentType, upsert: false });
 
-  if (uploadError) return null;
+  if (uploadError) return { mediaId: null, error: `Could not upload ${photo.name || "photo"}: ${uploadError.message}` };
 
-  const { data: media } = await supabase.from("media_files").insert({
+  const { data: media, error: mediaError } = await supabase.from("media_files").insert({
     related_type: "quote_request",
     related_id: requestId,
     file_url: storagePath,
-    file_type: photo.type,
+    file_type: contentType,
     label: "photo",
   }).select("id").single();
 
-  return media?.id ?? null;
+  if (mediaError) return { mediaId: null, error: `Photo uploaded but could not be linked: ${mediaError.message}` };
+  return { mediaId: media?.id ?? null, error: null };
 }
 
 export async function submitQuoteRequest(formData: FormData) {
@@ -191,9 +229,8 @@ export async function submitQuoteRequest(formData: FormData) {
   ]));
   const servicePhotos = Array.from(photosBySelectedService.values()).flat();
   const legacyPhotos = formData.getAll("photos").filter((value): value is File => value instanceof File && value.size > 0);
-  if (![...servicePhotos, ...legacyPhotos].length) redirect(`/request-quote?error=${encodeURIComponent("Please upload at least one yard photo.")}`);
-  const missingPhotoService = selectedServices.find((item) => !(photosBySelectedService.get(item.serviceId)?.length));
-  if (missingPhotoService) redirect(`/request-quote?error=${encodeURIComponent("Please upload at least one photo for each selected service.")}`);
+  const photoValidationError = validateQuotePhotos([...servicePhotos, ...legacyPhotos]);
+  if (photoValidationError) redirect(`/request-quote?error=${encodeURIComponent(photoValidationError)}`);
 
   const profileId = await getSignedInProfileId(input.email);
   const { data: existingCustomer } = profileId
@@ -320,19 +357,23 @@ export async function submitQuoteRequest(formData: FormData) {
     if (answersToInsert.length) await supabase.from("quote_request_service_answers").insert(answersToInsert);
   }
 
+  const uploadWarnings: string[] = [];
   for (const selected of selectedServices) {
     const requestServiceId = createdRequestServices.get(selected.serviceId);
     const photos = (photosBySelectedService.get(selected.serviceId) ?? []).slice(0, 6);
     for (const photo of photos) {
-      const mediaId = await uploadQuotePhoto({ supabase, requestId: request.id, serviceRequestId: requestServiceId, photo });
-      if (mediaId && requestServiceId) {
-        await supabase.from("quote_request_service_photos").insert({ quote_request_service_id: requestServiceId, media_file_id: mediaId });
+      const result = await uploadQuotePhoto({ supabase, requestId: request.id, serviceRequestId: requestServiceId, photo });
+      if (result.error) uploadWarnings.push(result.error);
+      if (result.mediaId && requestServiceId) {
+        const { error: linkError } = await supabase.from("quote_request_service_photos").insert({ quote_request_service_id: requestServiceId, media_file_id: result.mediaId });
+        if (linkError) uploadWarnings.push(`Photo uploaded but could not be attached to ${servicesById.get(selected.serviceId)?.name ?? "the selected service"}: ${linkError.message}`);
       }
     }
   }
 
   for (const photo of legacyPhotos.slice(0, 6)) {
-    await uploadQuotePhoto({ supabase, requestId: request.id, photo });
+    const result = await uploadQuotePhoto({ supabase, requestId: request.id, photo });
+    if (result.error) uploadWarnings.push(result.error);
   }
 
   const { data: terms } = await supabase
@@ -359,8 +400,9 @@ export async function submitQuoteRequest(formData: FormData) {
     action: "quote_request.created",
     related_type: "quote_request",
     related_id: request.id,
-    metadata_json: { source: "public_service_wizard", serviceIds, serviceArea: areaCheck.matchedAreaName },
+    metadata_json: { source: "public_service_wizard", serviceIds, serviceArea: areaCheck.matchedAreaName, uploadWarnings: uploadWarnings.slice(0, 5) },
   });
 
-  redirect("/request-quote?submitted=1");
+  const warning = uploadWarnings.length ? `Your request was submitted, but ${uploadWarnings.length} photo upload${uploadWarnings.length === 1 ? "" : "s"} could not be saved. Please reply with photos when we follow up, or try again from the customer portal.` : "";
+  redirect(`/request-quote?submitted=1${warning ? `&warning=${encodeURIComponent(warning)}` : ""}`);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -57,6 +57,9 @@ type AnswerState = Record<string, string | string[]>;
 type NotesState = Record<string, string>;
 
 const stepLabels = ["Address", "Services", "Details", "Contact"];
+const maxPhotoBytes = 20 * 1024 * 1024;
+const maxTotalPhotoBytes = 35 * 1024 * 1024;
+const supportedPhotoExtensions = new Set(["jpg", "jpeg", "png", "webp", "gif", "heic", "heif", "avif"]);
 
 function serviceBadge(type: string) {
   if (type === "add_on") return "Add-on";
@@ -76,6 +79,7 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
   const [answers, setAnswers] = useState<AnswerState>({});
   const [notes, setNotes] = useState<NotesState>({});
   const [photoServiceIds, setPhotoServiceIds] = useState<string[]>([]);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const selectedServices = useMemo(() => services.filter((service) => selectedServiceIds.includes(service.id)), [selectedServiceIds, services]);
   const coreServices = services.filter((service) => service.service_type === "core");
@@ -101,6 +105,36 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
     });
   }
 
+  function validatePhotoFiles(files: File[]) {
+    const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+    const tooLarge = files.find((file) => file.size > maxPhotoBytes);
+    const unsupported = files.find((file) => {
+      const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+      return file.type ? !file.type.startsWith("image/") : !supportedPhotoExtensions.has(extension);
+    });
+    if (unsupported) return `${unsupported.name} is not an image file. Please upload a JPEG, PNG, WebP, HEIC, GIF, or AVIF image.`;
+    if (tooLarge) return `${tooLarge.name} is larger than 20MB. Please upload a smaller photo or take a lower-resolution picture.`;
+    if (totalBytes > maxTotalPhotoBytes) return "The selected photos are over 35MB total. Please remove a few photos or upload smaller versions.";
+    return null;
+  }
+
+  function handlePhotoChange(serviceId: string, files: FileList | null) {
+    const fileArray = Array.from(files ?? []);
+    const errorMessage = validatePhotoFiles(fileArray);
+    setUploadError(errorMessage);
+    setPhotoServiceIds((current) => fileArray.length ? Array.from(new Set([...current, serviceId])) : current.filter((id) => id !== serviceId));
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    const files = Array.from(event.currentTarget.querySelectorAll<HTMLInputElement>('input[type="file"]')).flatMap((input) => Array.from(input.files ?? []));
+    const errorMessage = validatePhotoFiles(files);
+    if (errorMessage) {
+      event.preventDefault();
+      setUploadError(errorMessage);
+      setStep(2);
+    }
+  }
+
   function setAnswer(question: WizardServiceQuestion, value: string, checked = true) {
     setAnswers((current) => {
       if (question.question_type === "multi_choice") {
@@ -116,15 +150,12 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
   }
 
   function canContinueDetails() {
-    return selectedServices.every((service) => {
-      if (!photoServiceIds.includes(service.id)) return false;
-      return service.questions.every((question) => {
-        if (!question.required) return true;
-        const answer = answers[question.id];
-        if (Array.isArray(answer)) return answer.length > 0;
-        return Boolean(answer && answer.trim());
-      });
-    });
+    return selectedServices.every((service) => service.questions.every((question) => {
+      if (!question.required) return true;
+      const answer = answers[question.id];
+      if (Array.isArray(answer)) return answer.length > 0;
+      return Boolean(answer && answer.trim());
+    }));
   }
 
   function ServiceCard({ service }: { service: WizardService }) {
@@ -183,7 +214,7 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
   }
 
   return (
-    <form action={submitQuoteRequest} className="grid gap-6" noValidate>
+    <form action={submitQuoteRequest} onSubmit={handleSubmit} className="grid gap-6" noValidate>
       <input type="hidden" name="selectedServicesJson" value={selectedJson} />
       <input type="hidden" name="requestedServiceId" value={selectedServiceIds[0] ?? ""} />
       <div className="flex flex-wrap gap-2">
@@ -192,6 +223,7 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
         ))}
       </div>
       {error ? <div className="rounded-lg tone-danger p-3 text-sm font-medium text-[var(--danger)]">{error}</div> : null}
+      {uploadError ? <div className="rounded-lg tone-danger p-3 text-sm font-medium text-[var(--danger)]">{uploadError}</div> : null}
 
       <Card className={step === 0 ? "space-y-5" : "hidden"}>
           <div>
@@ -229,7 +261,7 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
       <Card className={step === 2 ? "space-y-6" : "hidden"}>
           <div>
             <h2 className="text-2xl font-black">Service details</h2>
-            <p className="mt-2 text-sm text-[var(--muted-foreground)]">Answer quick questions and attach photos for each selected service. These help the admin estimate workload and route timing.</p>
+            <p className="mt-2 text-sm text-[var(--muted-foreground)]">Answer quick questions and optionally attach photos. Photos help the admin estimate workload and route timing, but they are not required to submit.</p>
           </div>
           {selectedServices.map((service) => (
             <div key={service.id} className="rounded-2xl border border-[var(--border)] p-4">
@@ -254,14 +286,15 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
                 <Field label={`Notes for ${service.name}`} hint="Keep it short. Example: backyard is taller than front, gate is on left, mulch is already purchased.">
                   <Textarea value={notes[service.id] ?? ""} onChange={(event) => setNotes((current) => ({ ...current, [service.id]: event.target.value }))} />
                 </Field>
-                <Field label={`Photos for ${service.name}`} hint="Upload photos for this specific service area. At least one photo across the request is required.">
-                  <Input name={`servicePhotos:${service.id}`} type="file" accept="image/*" multiple onChange={(event) => setPhotoServiceIds((current) => event.currentTarget.files?.length ? Array.from(new Set([...current, service.id])) : current.filter((id) => id !== service.id))} />
+                <Field label={`Photos for ${service.name} (optional)`} hint="Optional. JPEG, PNG, WebP, HEIC, GIF, or AVIF. Up to 20MB per photo and 35MB total per request.">
+                  <Input name={`servicePhotos:${service.id}`} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,image/avif,image/*" multiple onChange={(event) => handlePhotoChange(service.id, event.currentTarget.files)} />
                 </Field>
+                {photoServiceIds.includes(service.id) ? <p className="text-xs font-semibold text-[var(--success)]">Photos attached for {service.name}.</p> : null}
               </div>
             </div>
           ))}
           {!selectedServices.length ? <p className="text-sm text-[var(--muted-foreground)]">Choose at least one service first.</p> : null}
-          {selectedServices.length && !canContinueDetails() ? <p className="text-sm font-semibold text-[var(--warning)]">Answer required questions and upload at least one photo for each selected service to continue.</p> : null}
+          {selectedServices.length && !canContinueDetails() ? <p className="text-sm font-semibold text-[var(--warning)]">Answer required service questions to continue. Photos are optional.</p> : null}
           <div className="flex flex-wrap justify-between gap-2">
             <Button type="button" variant="outline" onClick={() => setStep(1)}>Back</Button>
             <Button type="button" onClick={() => setStep(3)} disabled={!selectedServices.length || !canContinueDetails()}>Next: contact</Button>
