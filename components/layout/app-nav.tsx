@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { AppRole } from "@/lib/auth/session";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -69,21 +69,43 @@ function NavGroupSection({ group, defaultOpen = false, onNavigate }: { group: Na
 
 export function MobileNavButton({ role }: { role: AppRole }) {
   const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLDivElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const dashboardHref = `/${role}/dashboard`;
   const menuGroups = navGroupsByRole[role]
     .map((group) => ({ ...group, items: group.items.filter((item) => item.href !== dashboardHref) }))
     .filter((group) => group.items.length > 0);
 
+  useEffect(() => {
+    if (!open) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (menuRef.current?.contains(target) || buttonRef.current?.contains(target)) return;
+      setOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
   return (
-    <div className="relative">
+    <div ref={buttonRef} className="relative">
       <Button type="button" variant="outline" size="sm" onClick={() => setOpen((current) => !current)} aria-expanded={open} aria-haspopup="menu" aria-label="Open navigation menu">
         <Menu className="h-4 w-4" aria-hidden="true" />
         Menu
       </Button>
       {open ? (
-        <>
-          <button type="button" className="fixed inset-0 z-40 cursor-default" aria-label="Close navigation menu" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full z-50 mt-2 w-[min(92vw,380px)] max-h-[calc(100vh-5rem)] overflow-y-auto rounded-3xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-2xl" role="menu" aria-label="Navigation menu">
+        <div ref={menuRef} className="absolute right-0 top-full z-50 mt-2 w-[min(92vw,380px)] max-h-[calc(100vh-5rem)] overflow-y-auto rounded-3xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-2xl" role="menu" aria-label="Navigation menu">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--primary)]">JJ&amp;L</p>
@@ -100,7 +122,6 @@ export function MobileNavButton({ role }: { role: AppRole }) {
               ))}
             </nav>
           </div>
-        </>
       ) : null}
     </div>
   );
