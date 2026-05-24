@@ -160,9 +160,15 @@ export async function submitQuoteRequest(formData: FormData) {
   });
   if (!areaCheck.inside) redirect(`/request-quote?error=${encodeURIComponent(areaCheck.message)}`);
 
-  const servicePhotos = selectedServices.flatMap((item) => formData.getAll(`servicePhotos:${item.serviceId}`).filter((value): value is File => value instanceof File && value.size > 0));
+  const photosBySelectedService = new Map(selectedServices.map((item) => [
+    item.serviceId,
+    formData.getAll(`servicePhotos:${item.serviceId}`).filter((value): value is File => value instanceof File && value.size > 0),
+  ]));
+  const servicePhotos = Array.from(photosBySelectedService.values()).flat();
   const legacyPhotos = formData.getAll("photos").filter((value): value is File => value instanceof File && value.size > 0);
   if (![...servicePhotos, ...legacyPhotos].length) redirect(`/request-quote?error=${encodeURIComponent("Please upload at least one yard photo.")}`);
+  const missingPhotoService = selectedServices.find((item) => !(photosBySelectedService.get(item.serviceId)?.length));
+  if (missingPhotoService) redirect(`/request-quote?error=${encodeURIComponent("Please upload at least one photo for each selected service.")}`);
 
   const { data: customer, error: customerError } = await supabase
     .from("customers")
@@ -270,7 +276,7 @@ export async function submitQuoteRequest(formData: FormData) {
 
   for (const selected of selectedServices) {
     const requestServiceId = createdRequestServices.get(selected.serviceId);
-    const photos = formData.getAll(`servicePhotos:${selected.serviceId}`).filter((value): value is File => value instanceof File && value.size > 0).slice(0, 6);
+    const photos = (photosBySelectedService.get(selected.serviceId) ?? []).slice(0, 6);
     for (const photo of photos) {
       const mediaId = await uploadQuotePhoto({ supabase, requestId: request.id, serviceRequestId: requestServiceId, photo });
       if (mediaId && requestServiceId) {

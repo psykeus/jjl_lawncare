@@ -23,7 +23,7 @@
 - Short-text and number question support
 - Notes per selected service
 - Photo upload per selected service
-- Required at least one quote photo across the request
+- Required at least one quote photo per selected service, enforced server-side
 - Preferred dates/time-window capture
 - Customer notes
 - Terms acceptance

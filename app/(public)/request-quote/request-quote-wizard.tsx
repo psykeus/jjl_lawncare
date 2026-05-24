@@ -183,7 +183,7 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
   }
 
   return (
-    <form action={submitQuoteRequest} className="grid gap-6">
+    <form action={submitQuoteRequest} className="grid gap-6" noValidate>
       <input type="hidden" name="selectedServicesJson" value={selectedJson} />
       <input type="hidden" name="requestedServiceId" value={selectedServiceIds[0] ?? ""} />
       <div className="flex flex-wrap gap-2">
