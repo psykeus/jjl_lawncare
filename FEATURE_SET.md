@@ -43,6 +43,10 @@
 
 ## Authentication and roles
 
+- Live customer dashboard with recent requests, estimates, invoices, and jobs
+- Customer request list backed by live quote request data
+- Customer property list backed by live property data
+- Customer account settings update for name/phone
 - Supabase Auth login/signup
 - Passwordless/magic-link customer login option
 - Auth callback supports a `next` redirect target
