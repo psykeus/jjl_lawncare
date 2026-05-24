@@ -69,6 +69,10 @@ function NavGroupSection({ group, defaultOpen = false, onNavigate }: { group: Na
 
 export function MobileNavButton({ role }: { role: AppRole }) {
   const [open, setOpen] = useState(false);
+  const dashboardHref = `/${role}/dashboard`;
+  const menuGroups = navGroupsByRole[role]
+    .map((group) => ({ ...group, items: group.items.filter((item) => item.href !== dashboardHref) }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <div className="relative">
@@ -90,7 +94,8 @@ export function MobileNavButton({ role }: { role: AppRole }) {
               </Button>
             </div>
             <nav className="grid gap-3 pb-2" aria-label="Navigation links">
-              {navGroupsByRole[role].map((group, index) => (
+              <NavLink href={dashboardHref} label="Dashboard" onClick={() => setOpen(false)} />
+              {menuGroups.map((group, index) => (
                 <NavGroupSection key={group.label} group={group} defaultOpen={index === 0} onNavigate={() => setOpen(false)} />
               ))}
             </nav>
