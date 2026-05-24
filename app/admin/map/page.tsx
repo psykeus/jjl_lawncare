@@ -148,11 +148,11 @@ export default async function AdminMapPage({ searchParams }: { searchParams: Pro
         <h1 className="text-3xl font-black">Internal job map</h1>
         <p className="mt-2 text-[var(--muted-foreground)]">Admin-only routing board showing each job, requested work, quote photos, and scheduled route pins.</p>
       </div>
-      {params.error ? <Card className="border-red-200 bg-red-50 text-sm text-[var(--danger)]">{params.error}</Card> : null}
-      {params.geocoded ? <Card className="border-green-200 bg-green-50 text-sm text-[var(--success)]">Geocoded {params.geocoded} propert{params.geocoded === "1" ? "y" : "ies"}.</Card> : null}
-      {outsideAreaCount ? <Card className="border-blue-200 bg-blue-50 text-sm text-blue-900">{outsideAreaCount} job(s) are outside the Greater Cincinnati planning area and are hidden from this routing map.</Card> : null}
+      {params.error ? <Card className="border-[color-mix(in_srgb,var(--danger)_35%,var(--border))] tone-danger text-sm text-[var(--danger)]">{params.error}</Card> : null}
+      {params.geocoded ? <Card className="border-[color-mix(in_srgb,var(--success)_35%,var(--border))] tone-success text-sm text-[var(--success)]">Geocoded {params.geocoded} propert{params.geocoded === "1" ? "y" : "ies"}.</Card> : null}
+      {outsideAreaCount ? <Card className="border-[color-mix(in_srgb,var(--info)_35%,var(--border))] tone-info text-sm text-[var(--info)]">{outsideAreaCount} job(s) are outside the Greater Cincinnati planning area and are hidden from this routing map.</Card> : null}
       {unmappedCount ? (
-        <Card className="border-yellow-200 bg-yellow-50 text-sm text-yellow-900">
+        <Card className="border-[color-mix(in_srgb,var(--warning)_35%,var(--border))] tone-warning text-sm text-[var(--warning)]">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span>{unmappedCount} job(s) are missing coordinates. Run geocoding after adding or changing the Google Geocoding API key.</span>
             <form action={geocodeUnmappedProperties}><Button type="submit" variant="outline" size="sm">Geocode missing</Button></form>

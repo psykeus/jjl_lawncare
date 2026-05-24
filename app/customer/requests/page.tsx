@@ -21,7 +21,7 @@ export default async function CustomerRequestsPage() {
           <h1 className="text-3xl font-black">My requests</h1>
           <p className="mt-2 text-[var(--muted-foreground)]">Track submitted quote requests and review status.</p>
         </div>
-        <Link href="/request-quote" className="rounded-lg bg-[var(--primary)] px-4 py-2 font-semibold text-white">New request</Link>
+        <Link href="/request-quote" className="rounded-lg bg-[var(--primary)] px-4 py-2 font-semibold text-[var(--primary-foreground)]">New request</Link>
       </div>
       <div className="grid gap-4">
         {(requests ?? []).map((request) => {

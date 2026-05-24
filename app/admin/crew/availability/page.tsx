@@ -34,9 +34,9 @@ export default async function CrewAvailabilityPage({ searchParams }: { searchPar
       <div>
         <h1 className="text-3xl font-black">Crew availability</h1>
         <p className="mt-2 text-[var(--muted-foreground)]">Tell the scheduler who is available and for how long each day.</p>
-        {params.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
-        {params.saved ? <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-green-700">Availability saved.</div> : null}
-        {error ? <div className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Crew availability table is not available yet. Apply db/migrations/007_scheduling_planning.sql.</div> : null}
+        {params.error ? <div className="mt-4 rounded-lg tone-danger p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
+        {params.saved ? <div className="mt-4 rounded-lg tone-success p-3 text-sm text-[var(--success)]">Availability saved.</div> : null}
+        {error ? <div className="mt-4 rounded-lg tone-warning p-3 text-sm text-[var(--warning)]">Crew availability table is not available yet. Apply db/migrations/007_scheduling_planning.sql.</div> : null}
       </div>
 
       <Card>

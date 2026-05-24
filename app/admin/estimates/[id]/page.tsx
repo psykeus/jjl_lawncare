@@ -38,9 +38,9 @@ export default async function EstimateDetailPage({
           <h1 className="text-3xl font-black">Estimate {estimate.document_number}</h1>
           <p className="mt-2 text-[var(--muted-foreground)]">{customer?.name} — {property?.address_line_1}, {property?.city}</p>
           <div className="mt-3 flex gap-2"><StatusBadge status={estimate.status} /><span className="text-sm text-[var(--muted-foreground)]">Expires {formatDate(estimate.expiration_date)}</span></div>
-          {query.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-[var(--danger)]">{query.error}</div> : null}
-          {query.saved ? <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-[var(--success)]">Estimate saved.</div> : null}
-          {query.sent ? <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-[var(--success)]">Estimate marked sent.</div> : null}
+          {query.error ? <div className="mt-4 rounded-lg tone-danger p-3 text-sm text-[var(--danger)]">{query.error}</div> : null}
+          {query.saved ? <div className="mt-4 rounded-lg tone-success p-3 text-sm text-[var(--success)]">Estimate saved.</div> : null}
+          {query.sent ? <div className="mt-4 rounded-lg tone-success p-3 text-sm text-[var(--success)]">Estimate marked sent.</div> : null}
         </div>
         {estimate.status === "accepted" ? (
           <form action={convertEstimateToJob}>

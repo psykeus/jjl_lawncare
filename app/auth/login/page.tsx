@@ -11,8 +11,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       <Card className="w-full">
         <h1 className="text-3xl font-black">Log in</h1>
         <p className="mt-2 text-sm text-[var(--muted-foreground)]">Access customer, crew, or admin tools.</p>
-        {params.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
-        {params.message ? <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-[var(--success)]">{params.message}</div> : null}
+        {params.error ? <div className="mt-4 rounded-lg tone-danger p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
+        {params.message ? <div className="mt-4 rounded-lg tone-success p-3 text-sm text-[var(--success)]">{params.message}</div> : null}
         <form action={signInWithMagicLink} className="mt-6 grid gap-4 rounded-xl border border-[var(--border)] p-4">
           <div>
             <h2 className="font-bold">Easy customer login</h2>

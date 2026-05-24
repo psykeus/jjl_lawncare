@@ -20,7 +20,7 @@ export default async function AdminServicesPage({ searchParams }: { searchParams
         <div>
           <h1 className="text-3xl font-black">Services & pricing</h1>
           <p className="mt-2 text-[var(--muted-foreground)]">Editable catalog for services, add-ons, exclusions, and case-by-case work.</p>
-          {params.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
+          {params.error ? <div className="mt-4 rounded-lg tone-danger p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
         </div>
         <div className="flex gap-2">
           <ButtonLink href="/admin/services/new">New service</ButtonLink>

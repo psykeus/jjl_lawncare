@@ -19,6 +19,7 @@
   --danger: #b42318;
   --warning: #b54708;
   --success: #027a48;
+  --info: #175cd3;
 }
 
 .dark {
@@ -40,6 +41,7 @@
   --danger: #ffb4ab;
   --warning: #ffd7a3;
   --success: #9ee6bd;
+  --info: #9ecaff;
 }
 
 * {
@@ -78,4 +80,24 @@ textarea {
 
 .safe-bottom {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.tone-success {
+  border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+  background: color-mix(in srgb, var(--success) 12%, var(--card));
+}
+
+.tone-warning {
+  border-color: color-mix(in srgb, var(--warning) 35%, var(--border));
+  background: color-mix(in srgb, var(--warning) 12%, var(--card));
+}
+
+.tone-danger {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+  background: color-mix(in srgb, var(--danger) 12%, var(--card));
+}
+
+.tone-info {
+  border-color: color-mix(in srgb, var(--info) 35%, var(--border));
+  background: color-mix(in srgb, var(--info) 12%, var(--card));
 }

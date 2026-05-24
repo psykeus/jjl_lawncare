@@ -30,8 +30,8 @@ export default async function TermsManagerPage({ searchParams }: { searchParams:
       <div>
         <h1 className="text-3xl font-black">Terms manager</h1>
         <p className="mt-2 text-[var(--muted-foreground)]">Create immutable-style versions and activate the version customers must accept for quote requests and estimate approvals.</p>
-        {params.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
-        {params.saved ? <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-[var(--success)]">Terms saved.</div> : null}
+        {params.error ? <div className="mt-4 rounded-lg tone-danger p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
+        {params.saved ? <div className="mt-4 rounded-lg tone-success p-3 text-sm text-[var(--success)]">Terms saved.</div> : null}
       </div>
 
       <Card>

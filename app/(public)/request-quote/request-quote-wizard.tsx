@@ -133,18 +133,18 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
       <button
         type="button"
         onClick={() => toggleService(service.id)}
-        className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm ${selected ? "border-[var(--primary)] bg-green-50 ring-2 ring-green-100" : "border-[var(--border)] bg-white"}`}
+        className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm ${selected ? "border-[var(--primary)] tone-success ring-2 ring-[color-mix(in_srgb,var(--success)_24%,var(--border))]" : "border-[var(--border)] bg-[var(--card)]"}`}
       >
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="text-xs font-bold uppercase tracking-wide text-[var(--primary)]">{serviceBadge(service.service_type)}</div>
             <h3 className="mt-1 text-lg font-bold">{service.name}</h3>
           </div>
-          <span className={`rounded-full px-2 py-1 text-xs font-bold ${selected ? "bg-[var(--primary)] text-white" : "bg-[var(--muted)] text-[var(--muted-foreground)]"}`}>{selected ? "Selected" : "Choose"}</span>
+          <span className={`rounded-full px-2 py-1 text-xs font-bold ${selected ? "bg-[var(--primary)] text-[var(--primary-foreground)]" : "bg-[var(--muted)] text-[var(--muted-foreground)]"}`}>{selected ? "Selected" : "Choose"}</span>
         </div>
         <p className="mt-2 text-sm text-[var(--muted-foreground)]">{service.public_description ?? "Final pricing depends on yard size, access, photos, and site conditions."}</p>
         <p className="mt-3 text-sm font-semibold">{servicePriceLabel(service)}</p>
-        {service.requires_parent_approval || service.requires_site_review ? <p className="mt-2 text-xs text-amber-700">May need admin/parent review before scheduling.</p> : null}
+        {service.requires_parent_approval || service.requires_site_review ? <p className="mt-2 text-xs text-[var(--warning)]">May need admin/parent review before scheduling.</p> : null}
       </button>
     );
   }
@@ -162,7 +162,7 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
     if (question.question_type === "yes_no") {
       return (
         <div className="flex flex-wrap gap-2">
-          {["Yes", "No"].map((label) => <button key={label} type="button" onClick={() => setAnswer(question, label.toLowerCase())} className={`rounded-full border px-4 py-2 text-sm font-semibold ${value === label.toLowerCase() ? "border-[var(--primary)] bg-[var(--primary)] text-white" : "border-[var(--border)] bg-white"}`}>{label}</button>)}
+          {["Yes", "No"].map((label) => <button key={label} type="button" onClick={() => setAnswer(question, label.toLowerCase())} className={`rounded-full border px-4 py-2 text-sm font-semibold ${value === label.toLowerCase() ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]" : "border-[var(--border)] bg-[var(--card)]"}`}>{label}</button>)}
         </div>
       );
     }
@@ -171,7 +171,7 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
         {options.map((option) => {
           const selected = question.question_type === "multi_choice" ? toArray(value).includes(option.id) : value === option.id;
           return (
-            <button key={option.id} type="button" onClick={() => setAnswer(question, option.id, !selected)} className={`rounded-full border px-4 py-2 text-sm font-semibold ${selected ? "border-[var(--primary)] bg-[var(--primary)] text-white" : "border-[var(--border)] bg-white hover:bg-[var(--muted)]"}`}>
+            <button key={option.id} type="button" onClick={() => setAnswer(question, option.id, !selected)} className={`rounded-full border px-4 py-2 text-sm font-semibold ${selected ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]" : "border-[var(--border)] bg-[var(--card)] hover:bg-[var(--muted)]"}`}>
               {option.label}
               {Number(option.duration_modifier_minutes ?? 0) ? <span className="ml-1 opacity-80">+{option.duration_modifier_minutes}m</span> : null}
             </button>
@@ -188,10 +188,10 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
       <input type="hidden" name="requestedServiceId" value={selectedServiceIds[0] ?? ""} />
       <div className="flex flex-wrap gap-2">
         {stepLabels.map((label, index) => (
-          <button key={label} type="button" onClick={() => setStep(index)} className={`rounded-full px-3 py-1 text-sm font-semibold ${step === index ? "bg-[var(--primary)] text-white" : "bg-[var(--muted)] text-[var(--muted-foreground)]"}`}>{index + 1}. {label}</button>
+          <button key={label} type="button" onClick={() => setStep(index)} className={`rounded-full px-3 py-1 text-sm font-semibold ${step === index ? "bg-[var(--primary)] text-[var(--primary-foreground)]" : "bg-[var(--muted)] text-[var(--muted-foreground)]"}`}>{index + 1}. {label}</button>
         ))}
       </div>
-      {error ? <div className="rounded-lg bg-red-50 p-3 text-sm font-medium text-[var(--danger)]">{error}</div> : null}
+      {error ? <div className="rounded-lg tone-danger p-3 text-sm font-medium text-[var(--danger)]">{error}</div> : null}
 
       <Card className={step === 0 ? "space-y-5" : "hidden"}>
           <div>
@@ -212,9 +212,9 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
             {caseByCase.map((service) => <ServiceCard key={service.id} service={service} />)}
           </div>
           {selectedServiceIds.length && addOns.length ? (
-            <div className="rounded-2xl border border-green-200 bg-green-50 p-4">
+            <div className="rounded-2xl border border-[color-mix(in_srgb,var(--success)_35%,var(--border))] tone-success p-4">
               <h3 className="text-lg font-bold">Helpful add-ons</h3>
-              <p className="mt-1 text-sm text-green-800">Want to add any of these while the crew is there?</p>
+              <p className="mt-1 text-sm text-[var(--success)]">Want to add any of these while the crew is there?</p>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 {addOns.map((service) => <ServiceCard key={service.id} service={service} />)}
               </div>
@@ -261,7 +261,7 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
             </div>
           ))}
           {!selectedServices.length ? <p className="text-sm text-[var(--muted-foreground)]">Choose at least one service first.</p> : null}
-          {selectedServices.length && !canContinueDetails() ? <p className="text-sm font-semibold text-amber-700">Answer required questions and upload at least one photo for each selected service to continue.</p> : null}
+          {selectedServices.length && !canContinueDetails() ? <p className="text-sm font-semibold text-[var(--warning)]">Answer required questions and upload at least one photo for each selected service to continue.</p> : null}
           <div className="flex flex-wrap justify-between gap-2">
             <Button type="button" variant="outline" onClick={() => setStep(1)}>Back</Button>
             <Button type="button" onClick={() => setStep(3)} disabled={!selectedServices.length || !canContinueDetails()}>Next: contact</Button>

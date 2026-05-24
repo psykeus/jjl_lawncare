@@ -1,25 +1,13 @@
 import { cn } from "@/lib/utils";
 
 const variants = {
-  default: "bg-[var(--muted)] text-[var(--foreground)]",
-  success: "bg-green-50 text-[var(--success)] ring-green-200",
-  warning: "bg-amber-50 text-[var(--warning)] ring-amber-200",
-  danger: "bg-red-50 text-[var(--danger)] ring-red-200",
-  info: "bg-blue-50 text-blue-700 ring-blue-200",
+  success: "tone-success text-[var(--success)] ring-[color-mix(in_srgb,var(--success)_30%,var(--border))]",
+  warning: "tone-warning text-[var(--warning)] ring-[color-mix(in_srgb,var(--warning)_30%,var(--border))]",
+  danger: "tone-danger text-[var(--danger)] ring-[color-mix(in_srgb,var(--danger)_30%,var(--border))]",
+  info: "tone-info text-[var(--info)] ring-[color-mix(in_srgb,var(--info)_30%,var(--border))]",
+  neutral: "bg-[var(--muted)] text-[var(--muted-foreground)] ring-[var(--border)]",
 };
 
-export function Badge({
-  children,
-  variant = "default",
-  className,
-}: {
-  children: React.ReactNode;
-  variant?: keyof typeof variants;
-  className?: string;
-}) {
-  return (
-    <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset", variants[variant], className)}>
-      {children}
-    </span>
-  );
+export function Badge({ children, variant = "neutral" }: { children: React.ReactNode; variant?: keyof typeof variants }) {
+  return <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ring-1", variants[variant])}>{children}</span>;
 }

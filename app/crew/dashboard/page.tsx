@@ -42,7 +42,7 @@ export default async function CrewDashboardPage() {
           <h1 className="text-3xl font-black">Crew dashboard</h1>
           <p className="mt-2 text-[var(--muted-foreground)]">Quick access to assigned jobs, map, checklists, photos, and estimated earnings.</p>
         </div>
-        <Link href="/crew/map" className="rounded-lg bg-[var(--primary)] px-4 py-2 font-semibold text-white">Open map</Link>
+        <Link href="/crew/map" className="rounded-lg bg-[var(--primary)] px-4 py-2 font-semibold text-[var(--primary-foreground)]">Open map</Link>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">

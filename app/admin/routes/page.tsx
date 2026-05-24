@@ -39,10 +39,10 @@ export default async function AdminRoutesPage({ searchParams }: { searchParams: 
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div><h1 className="text-3xl font-black">Route planner</h1><p className="mt-2 text-[var(--muted-foreground)]">A deterministic route timeline using job priority, customer windows, estimated workload, and crew availability.</p></div>
-        <form className="flex gap-2"><input className="h-10 rounded-lg border border-[var(--border)] px-3 text-sm" name="date" type="date" defaultValue={date} /><button className="h-10 rounded-lg bg-[var(--primary)] px-4 font-semibold text-white">Plan</button></form>
+        <form className="flex gap-2"><input className="h-10 rounded-lg border border-[var(--border)] bg-[var(--input)] px-3 text-sm text-[var(--foreground)]" name="date" type="date" defaultValue={date} /><button className="h-10 rounded-lg bg-[var(--primary)] px-4 font-semibold text-[var(--primary-foreground)]">Plan</button></form>
       </div>
-      {legEstimate.error ? <Card className="border-amber-200 bg-amber-50 text-sm text-amber-900">{legEstimate.error}</Card> : null}
-      {capacity.warnings.length ? <Card className="border-red-200 bg-red-50"><h2 className="font-bold text-[var(--danger)]">Overbooking / routing warnings</h2><ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-red-900">{capacity.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></Card> : <Card className="border-green-200 bg-green-50 text-sm text-green-800">This route fits the entered crew availability. Travel source: {legEstimate.source === "google" ? "Google Distance Matrix" : "15-minute fallback buffers"}.</Card>}
+      {legEstimate.error ? <Card className="border-[color-mix(in_srgb,var(--warning)_35%,var(--border))] tone-warning text-sm text-[var(--warning)]">{legEstimate.error}</Card> : null}
+      {capacity.warnings.length ? <Card className="border-[color-mix(in_srgb,var(--danger)_35%,var(--border))] tone-danger"><h2 className="font-bold text-[var(--danger)]">Overbooking / routing warnings</h2><ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[var(--danger)]">{capacity.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></Card> : <Card className="border-[color-mix(in_srgb,var(--success)_35%,var(--border))] tone-success text-sm text-[var(--success)]">This route fits the entered crew availability. Travel source: {legEstimate.source === "google" ? "Google Distance Matrix" : "15-minute fallback buffers"}.</Card>}
       <Card>
         <h2 className="text-xl font-bold">Planned timeline</h2>
         <div className="mt-4 grid gap-3">

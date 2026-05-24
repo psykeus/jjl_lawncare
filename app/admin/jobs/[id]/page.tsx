@@ -55,8 +55,8 @@ export default async function AdminJobDetailPage({
           <h1 className="text-3xl font-black">Job detail</h1>
           <p className="mt-2 text-[var(--muted-foreground)]">{customer?.name} — {property?.address_line_1}, {property?.city}</p>
           <div className="mt-3 flex gap-2"><StatusBadge status={job.status} />{estimate ? <span className="text-sm text-[var(--muted-foreground)]">Estimate {estimate.document_number} · {formatCurrency(Number(estimate.total))}</span> : null}</div>
-          {query.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-[var(--danger)]">{query.error}</div> : null}
-          {query.saved ? <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-[var(--success)]">Job saved.</div> : null}
+          {query.error ? <div className="mt-4 rounded-lg tone-danger p-3 text-sm text-[var(--danger)]">{query.error}</div> : null}
+          {query.saved ? <div className="mt-4 rounded-lg tone-success p-3 text-sm text-[var(--success)]">Job saved.</div> : null}
         </div>
         {invoice ? <ButtonLink href={`/admin/invoices/${invoice.id}`} variant="outline">View invoice</ButtonLink> : (
           <form action={generateInvoiceForJob}><input type="hidden" name="jobId" value={job.id} /><Button type="submit">Generate invoice</Button></form>

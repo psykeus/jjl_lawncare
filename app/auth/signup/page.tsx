@@ -11,7 +11,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
       <Card className="w-full">
         <h1 className="text-3xl font-black">Create customer account</h1>
         <p className="mt-2 text-sm text-[var(--muted-foreground)]">Crew/admin accounts should be created by an admin.</p>
-        {params.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
+        {params.error ? <div className="mt-4 rounded-lg tone-danger p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
         <form action={signUpWithPassword} className="mt-6 grid gap-4">
           <Field label="Name"><Input name="name" required /></Field>
           <Field label="Email"><Input name="email" type="email" required /></Field>

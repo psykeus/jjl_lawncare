@@ -49,8 +49,8 @@ export default async function CustomerEstimateDetailPage({
         <h1 className="text-3xl font-black">Estimate {estimate.document_number}</h1>
         <p className="mt-2 text-[var(--muted-foreground)]">{property?.address_line_1}, {property?.city}, {property?.state} {property?.zip}</p>
         <div className="mt-3 flex gap-2"><StatusBadge status={estimate.status} /><span className="text-sm text-[var(--muted-foreground)]">Expires {formatDate(estimate.expiration_date)}</span></div>
-        {query.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-[var(--danger)]">{query.error}</div> : null}
-        {query.accepted ? <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-[var(--success)]">Estimate accepted. The crew/admin team can now schedule your job.</div> : null}
+        {query.error ? <div className="mt-4 rounded-lg tone-danger p-3 text-sm text-[var(--danger)]">{query.error}</div> : null}
+        {query.accepted ? <div className="mt-4 rounded-lg tone-success p-3 text-sm text-[var(--success)]">Estimate accepted. The crew/admin team can now schedule your job.</div> : null}
       </div>
 
       <Card>
@@ -69,7 +69,7 @@ export default async function CustomerEstimateDetailPage({
               <tr key={item.id} className="border-t border-[var(--border)]"><td className="p-3">{item.description}</td><td className="p-3">{Number(item.quantity)}</td><td className="p-3">{formatCurrency(Number(item.unit_price))}</td><td className="p-3 font-semibold">{formatCurrency(Number(item.line_total))}</td></tr>
             ))}
           </tbody>
-          <tfoot className="border-t border-[var(--border)] bg-white font-semibold">
+          <tfoot className="border-t border-[var(--border)] bg-[var(--card)] font-semibold">
             <tr><td className="p-3" colSpan={3}>Subtotal</td><td className="p-3">{formatCurrency(Number(estimate.subtotal))}</td></tr>
             <tr><td className="p-3" colSpan={3}>Tax</td><td className="p-3">{formatCurrency(Number(estimate.tax_total))}</td></tr>
             <tr className="text-lg font-black"><td className="p-3" colSpan={3}>Total</td><td className="p-3">{formatCurrency(Number(estimate.total))}</td></tr>

@@ -32,8 +32,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <div>
         <h1 className="text-3xl font-black">Settings</h1>
         <p className="mt-2 text-[var(--muted-foreground)]">Business, payment, document, tax/reserve, and approval configuration.</p>
-        {params.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
-        {params.saved ? <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-[var(--success)]">Settings saved.</div> : null}
+        {params.error ? <div className="mt-4 rounded-lg tone-danger p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
+        {params.saved ? <div className="mt-4 rounded-lg tone-success p-3 text-sm text-[var(--success)]">Settings saved.</div> : null}
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

@@ -23,9 +23,9 @@ export default async function ServiceUpsellsPage({ params, searchParams }: { par
         <Link href="/admin/services" className="text-sm font-semibold text-[var(--primary)]">← Services</Link>
         <h1 className="mt-2 text-3xl font-black">Upsells for {service.name}</h1>
         <p className="mt-2 text-[var(--muted-foreground)]">Choose which add-ons should pop up when this service is selected in the public quote wizard.</p>
-        {query.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-[var(--danger)]">{query.error}</div> : null}
-        {query.saved ? <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-green-700">Upsells saved.</div> : null}
-        {error ? <div className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Service upsells table is not available yet. Apply db/migrations/008_service_catalog_planning_fields.sql.</div> : null}
+        {query.error ? <div className="mt-4 rounded-lg tone-danger p-3 text-sm text-[var(--danger)]">{query.error}</div> : null}
+        {query.saved ? <div className="mt-4 rounded-lg tone-success p-3 text-sm text-[var(--success)]">Upsells saved.</div> : null}
+        {error ? <div className="mt-4 rounded-lg tone-warning p-3 text-sm text-[var(--warning)]">Service upsells table is not available yet. Apply db/migrations/008_service_catalog_planning_fields.sql.</div> : null}
       </div>
       <Card>
         <form action={updateServiceUpsells} className="grid gap-4">

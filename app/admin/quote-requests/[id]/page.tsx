@@ -98,8 +98,8 @@ export default async function QuoteRequestDetailPage({
         <div>
           <h1 className="text-3xl font-black">Quote request</h1>
           <p className="mt-2 text-[var(--muted-foreground)]">{request.customers?.name} — {request.properties?.address_line_1}</p>
-          {query.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-[var(--danger)]">{query.error}</div> : null}
-          {query.saved ? <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-green-700">Review saved.</div> : null}
+          {query.error ? <div className="mt-4 rounded-lg tone-danger p-3 text-sm text-[var(--danger)]">{query.error}</div> : null}
+          {query.saved ? <div className="mt-4 rounded-lg tone-success p-3 text-sm text-[var(--success)]">Review saved.</div> : null}
         </div>
         <form action={createEstimateFromQuoteRequest}>
           <input type="hidden" name="quoteRequestId" value={request.id} />

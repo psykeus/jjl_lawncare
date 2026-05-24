@@ -49,8 +49,8 @@ export default async function ChecklistsPage({ searchParams }: { searchParams: P
       <div>
         <h1 className="text-3xl font-black">Checklist templates</h1>
         <p className="mt-2 text-[var(--muted-foreground)]">Create reusable service checklists. Jobs receive a snapshot at conversion time so future template edits do not rewrite past work.</p>
-        {params.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
-        {params.saved ? <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-[var(--success)]">Checklist saved.</div> : null}
+        {params.error ? <div className="mt-4 rounded-lg tone-danger p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
+        {params.saved ? <div className="mt-4 rounded-lg tone-success p-3 text-sm text-[var(--success)]">Checklist saved.</div> : null}
       </div>
 
       <Card>
@@ -97,7 +97,7 @@ export default async function ChecklistsPage({ searchParams }: { searchParams: P
                         <td className="p-3"><div className="flex gap-2"><Button form={`item-${item.id}`} type="submit" size="sm" variant="outline">Save</Button><form action={deactivateChecklistItem}><input type="hidden" name="id" value={item.id} /><Button type="submit" size="sm" variant="ghost">Deactivate</Button></form></div></td>
                       </tr>
                     ))}
-                    <tr className="border-t border-[var(--border)] bg-white">
+                    <tr className="border-t border-[var(--border)] bg-[var(--card)]">
                       <td className="p-3">
                         <form id={`new-item-${template.id}`} action={createChecklistItem} className="contents">
                           <input type="hidden" name="templateId" value={template.id} />

@@ -129,8 +129,8 @@ export function RequestAddressFields({ apiKey }: { apiKey?: string | null }) {
         <Field label="ZIP"><Input ref={zipRef} name="zip" required autoComplete="postal-code" onBlur={(event) => void checkArea(null, null, cityRef.current?.value, event.currentTarget.value)} /></Field>
       </div>
       {loading ? <div className="rounded-lg bg-[var(--muted)] p-3 text-sm text-[var(--muted-foreground)]">Checking service area…</div> : null}
-      {result ? <div className={`rounded-lg p-3 text-sm font-medium ${result.inside ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-800"}`}>{result.message}</div> : null}
-      {autocompleteError ? <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{autocompleteError} You can still type the address manually.</div> : null}
+      {result ? <div className={`rounded-lg p-3 text-sm font-medium ${result.inside ? "tone-success text-[var(--success)]" : "tone-warning text-[var(--warning)]"}`}>{result.message}</div> : null}
+      {autocompleteError ? <div className="rounded-lg tone-warning p-3 text-sm text-[var(--warning)]">{autocompleteError} You can still type the address manually.</div> : null}
     </div>
   );
 }

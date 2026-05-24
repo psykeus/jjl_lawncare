@@ -23,8 +23,8 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
       <div>
         <h1 className="text-3xl font-black">Expenses</h1>
         <p className="mt-2 text-[var(--muted-foreground)]">Track gas, supplies, maintenance, materials, and reimbursements.</p>
-        {params.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
-        {params.saved ? <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-[var(--success)]">Expense saved.</div> : null}
+        {params.error ? <div className="mt-4 rounded-lg tone-danger p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
+        {params.saved ? <div className="mt-4 rounded-lg tone-success p-3 text-sm text-[var(--success)]">Expense saved.</div> : null}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[360px_1fr]">

@@ -29,7 +29,7 @@ export default async function CustomerInvoiceDetailPage({ params }: { params: Pr
         <table className="w-full text-left text-sm">
           <thead className="bg-[var(--muted)]"><tr><th className="p-3">Description</th><th className="p-3">Qty</th><th className="p-3">Unit</th><th className="p-3">Total</th></tr></thead>
           <tbody>{(items ?? []).map((item) => <tr key={item.id} className="border-t border-[var(--border)]"><td className="p-3">{item.description}</td><td className="p-3">{Number(item.quantity)}</td><td className="p-3">{formatCurrency(Number(item.unit_price))}</td><td className="p-3 font-semibold">{formatCurrency(Number(item.line_total))}</td></tr>)}</tbody>
-          <tfoot className="border-t border-[var(--border)] bg-white font-semibold"><tr><td className="p-3" colSpan={3}>Total</td><td className="p-3">{formatCurrency(Number(invoice.total))}</td></tr><tr><td className="p-3" colSpan={3}>Paid</td><td className="p-3">{formatCurrency(Number(invoice.amount_paid))}</td></tr><tr className="text-lg font-black"><td className="p-3" colSpan={3}>Balance</td><td className="p-3">{formatCurrency(Number(invoice.balance_due))}</td></tr></tfoot>
+          <tfoot className="border-t border-[var(--border)] bg-[var(--card)] font-semibold"><tr><td className="p-3" colSpan={3}>Total</td><td className="p-3">{formatCurrency(Number(invoice.total))}</td></tr><tr><td className="p-3" colSpan={3}>Paid</td><td className="p-3">{formatCurrency(Number(invoice.amount_paid))}</td></tr><tr className="text-lg font-black"><td className="p-3" colSpan={3}>Balance</td><td className="p-3">{formatCurrency(Number(invoice.balance_due))}</td></tr></tfoot>
         </table>
       </Card>
       <Card>

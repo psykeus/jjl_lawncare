@@ -76,10 +76,10 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
       <div>
         <h1 className="text-3xl font-black">Users, access rights, and analytics</h1>
         <p className="mt-2 text-[var(--muted-foreground)]">Create users, promote/demote roles, ban accounts, and monitor account activity.</p>
-        {params.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
-        {params.saved ? <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-green-700">User access saved.</div> : null}
-        {params.archived ? <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-green-700">Account archived and sign-in access blocked.</div> : null}
-        {params.deleted ? <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-green-700">Account deleted. Linked customer records, if any, were archived and detached.</div> : null}
+        {params.error ? <div className="mt-4 rounded-lg tone-danger p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
+        {params.saved ? <div className="mt-4 rounded-lg tone-success p-3 text-sm text-[var(--success)]">User access saved.</div> : null}
+        {params.archived ? <div className="mt-4 rounded-lg tone-success p-3 text-sm text-[var(--success)]">Account archived and sign-in access blocked.</div> : null}
+        {params.deleted ? <div className="mt-4 rounded-lg tone-success p-3 text-sm text-[var(--success)]">Account deleted. Linked customer records, if any, were archived and detached.</div> : null}
       </div>
 
       <div className="grid gap-4 md:grid-cols-6">
@@ -141,7 +141,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                         <p className="text-xs text-[var(--muted-foreground)]">Archive keeps records but blocks sign-in and archives linked customer rows.</p>
                         <Button type="submit" size="sm" variant="outline" disabled={banned}>Archive account</Button>
                       </form>
-                      <form action={deleteUserAccount} className="grid gap-2 rounded-lg border border-red-200 bg-red-50 p-2">
+                      <form action={deleteUserAccount} className="grid gap-2 rounded-lg border border-[color-mix(in_srgb,var(--danger)_35%,var(--border))] tone-danger p-2">
                         <input type="hidden" name="profileId" value={profile.id} />
                         <input type="hidden" name="authUserId" value={profile.auth_user_id} />
                         <p className="text-xs text-[var(--danger)]">Deletes only accounts without audit/payment/media references. Otherwise archive.</p>

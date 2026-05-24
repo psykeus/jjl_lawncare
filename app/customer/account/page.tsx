@@ -12,8 +12,8 @@ export default async function CustomerAccountPage({ searchParams }: { searchPara
       <div>
         <h1 className="text-3xl font-black">Account settings</h1>
         <p className="mt-2 text-[var(--muted-foreground)]">Manage the contact details JJL Lawn Services uses for estimates and scheduling.</p>
-        {params.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
-        {params.saved ? <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-green-700">Account saved.</div> : null}
+        {params.error ? <div className="mt-4 rounded-lg tone-danger p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
+        {params.saved ? <div className="mt-4 rounded-lg tone-success p-3 text-sm text-[var(--success)]">Account saved.</div> : null}
       </div>
       <Card>
         <form action={updateCustomerAccount} className="grid gap-4 max-w-xl">

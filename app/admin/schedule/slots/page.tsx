@@ -49,21 +49,21 @@ export default async function SlotFinderPage({ searchParams }: { searchParams: P
       </div>
       <Card>
         <form className="grid gap-3 md:grid-cols-[140px_120px_120px_auto]">
-          <label className="grid gap-2 text-sm font-medium">Minutes<input className="h-10 rounded-lg border border-[var(--border)] px-3" name="duration" type="number" min="15" defaultValue={duration} /></label>
-          <label className="grid gap-2 text-sm font-medium">Crew<input className="h-10 rounded-lg border border-[var(--border)] px-3" name="crew" type="number" min="1" defaultValue={crewNeeded} /></label>
-          <label className="grid gap-2 text-sm font-medium">Days<input className="h-10 rounded-lg border border-[var(--border)] px-3" name="days" type="number" min="1" max="30" defaultValue={days} /></label>
-          <button className="self-end rounded-lg bg-[var(--primary)] px-4 py-2 font-semibold text-white">Find slots</button>
+          <label className="grid gap-2 text-sm font-medium">Minutes<input className="h-10 rounded-lg border border-[var(--border)] bg-[var(--input)] px-3 text-[var(--foreground)]" name="duration" type="number" min="15" defaultValue={duration} /></label>
+          <label className="grid gap-2 text-sm font-medium">Crew<input className="h-10 rounded-lg border border-[var(--border)] bg-[var(--input)] px-3 text-[var(--foreground)]" name="crew" type="number" min="1" defaultValue={crewNeeded} /></label>
+          <label className="grid gap-2 text-sm font-medium">Days<input className="h-10 rounded-lg border border-[var(--border)] bg-[var(--input)] px-3 text-[var(--foreground)]" name="days" type="number" min="1" max="30" defaultValue={days} /></label>
+          <button className="self-end rounded-lg bg-[var(--primary)] px-4 py-2 font-semibold text-[var(--primary-foreground)]">Find slots</button>
         </form>
       </Card>
       <Card>
         <h2 className="text-xl font-bold">Best candidate slots</h2>
         <div className="mt-4 grid gap-3">
-          {best.map((row) => <Link key={row.date} href={`/admin/schedule?date=${row.date}&duration=${duration}&crew=${crewNeeded}`} className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-900"><strong>{formatDate(row.date)} around {minutesToTime(row.suggestedStart)}</strong><br />Remaining after fit: {row.capacity.remaining - row.addedWorkload} crew-minutes · {row.crewAvailability.length} crew available</Link>)}
+          {best.map((row) => <Link key={row.date} href={`/admin/schedule?date=${row.date}&duration=${duration}&crew=${crewNeeded}`} className="rounded-xl border border-[color-mix(in_srgb,var(--success)_35%,var(--border))] tone-success p-4 text-sm text-[var(--success)]"><strong>{formatDate(row.date)} around {minutesToTime(row.suggestedStart)}</strong><br />Remaining after fit: {row.capacity.remaining - row.addedWorkload} crew-minutes · {row.crewAvailability.length} crew available</Link>)}
           {best.length ? null : <p className="text-sm text-[var(--muted-foreground)]">No fitting slots found in this range. Add availability, reduce workload, or extend the search window.</p>}
         </div>
       </Card>
       <Card className="overflow-x-auto p-0">
-        <table className="w-full text-left text-sm"><thead className="bg-[var(--muted)]"><tr><th className="p-3">Date</th><th className="p-3">Jobs</th><th className="p-3">Crew</th><th className="p-3">Remaining</th><th className="p-3">Result</th></tr></thead><tbody>{rows.map((row) => <tr key={row.date} className="border-t border-[var(--border)]"><td className="p-3"><Link className="font-semibold text-[var(--primary)]" href={`/admin/schedule?date=${row.date}&duration=${duration}&crew=${crewNeeded}`}>{formatDate(row.date)}</Link></td><td className="p-3">{row.plannerJobs.length}</td><td className="p-3">{row.crewAvailability.length}</td><td className="p-3">{row.capacity.remaining} min</td><td className={`p-3 font-semibold ${row.fits ? "text-green-700" : "text-[var(--danger)]"}`}>{row.fits ? `Fits around ${minutesToTime(row.suggestedStart)}` : "Full / unavailable"}</td></tr>)}</tbody></table>
+        <table className="w-full text-left text-sm"><thead className="bg-[var(--muted)]"><tr><th className="p-3">Date</th><th className="p-3">Jobs</th><th className="p-3">Crew</th><th className="p-3">Remaining</th><th className="p-3">Result</th></tr></thead><tbody>{rows.map((row) => <tr key={row.date} className="border-t border-[var(--border)]"><td className="p-3"><Link className="font-semibold text-[var(--primary)]" href={`/admin/schedule?date=${row.date}&duration=${duration}&crew=${crewNeeded}`}>{formatDate(row.date)}</Link></td><td className="p-3">{row.plannerJobs.length}</td><td className="p-3">{row.crewAvailability.length}</td><td className="p-3">{row.capacity.remaining} min</td><td className={`p-3 font-semibold ${row.fits ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>{row.fits ? `Fits around ${minutesToTime(row.suggestedStart)}` : "Full / unavailable"}</td></tr>)}</tbody></table>
       </Card>
     </div>
   );

@@ -228,7 +228,7 @@ export function AdminJobMap({ jobs, apiKey }: { jobs: AdminMapJob[]; apiKey?: st
           <h2 className="text-xl font-bold">Route planning</h2>
           <div className="mt-4 flex flex-wrap gap-2">
             {filterLabels.map(([value, label]) => (
-              <button key={value} type="button" onClick={() => setFilter(value)} className={`rounded-full border px-3 py-1 text-sm font-semibold ${filter === value ? "border-[var(--primary)] bg-[var(--primary)] text-white" : "border-[var(--border)] bg-white text-[var(--muted-foreground)]"}`}>
+              <button key={value} type="button" onClick={() => setFilter(value)} className={`rounded-full border px-3 py-1 text-sm font-semibold ${filter === value ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]" : "border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)]"}`}>
                 {label}{value !== "all" ? ` (${groupCounts[value]})` : ` (${jobs.length})`}
               </button>
             ))}
@@ -239,10 +239,10 @@ export function AdminJobMap({ jobs, apiKey }: { jobs: AdminMapJob[]; apiKey?: st
             <span><span className="mr-1 inline-block h-3 w-3 rounded-full" style={{ background: groupColors.past }} /> Past</span>
           </div>
           <p className="mt-2 text-sm text-[var(--muted-foreground)]">Pins are ordered by scheduled date/time. Build an optimized route for up to the first 10 mapped jobs, or open all stops in Google Maps.</p>
-          {mapError ? <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-[var(--danger)]">{mapError}</div> : null}
+          {mapError ? <div className="mt-3 rounded-lg tone-danger p-3 text-sm text-[var(--danger)]">{mapError}</div> : null}
           <div className="mt-4 flex flex-wrap gap-2">
             <Button type="button" onClick={buildRoute} disabled={!apiKey || routableJobs.length < 2}>Pinpoint route</Button>
-            <a className="inline-flex h-10 items-center rounded-lg border border-[var(--border)] bg-white px-4 font-semibold hover:bg-[var(--muted)]" href={mapsDirectionsUrl(routableJobs)} target="_blank" rel="noreferrer">Open in Google Maps</a>
+            <a className="inline-flex h-10 items-center rounded-lg border border-[var(--border)] bg-[var(--card)] px-4 font-semibold hover:bg-[var(--muted)]" href={mapsDirectionsUrl(routableJobs)} target="_blank" rel="noreferrer">Open in Google Maps</a>
           </div>
         </Card>
 
@@ -275,7 +275,7 @@ export function AdminJobMap({ jobs, apiKey }: { jobs: AdminMapJob[]; apiKey?: st
         ) : null}
 
         <Card className="max-h-[520px] overflow-auto p-0">
-          <div className="sticky top-0 border-b border-[var(--border)] bg-white p-4"><h2 className="font-bold">Mapped jobs</h2></div>
+          <div className="sticky top-0 border-b border-[var(--border)] bg-[var(--card)] p-4"><h2 className="font-bold">Mapped jobs</h2></div>
           <div className="divide-y divide-[var(--border)]">
             {routableJobs.map((job, index) => (
               <button key={job.id} type="button" onClick={() => setSelectedJobId(job.id)} className="block w-full p-4 text-left hover:bg-[var(--muted)]">

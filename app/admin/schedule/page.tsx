@@ -57,19 +57,19 @@ export default async function AdminSchedulePage({ searchParams }: { searchParams
         <div>
           <h1 className="text-3xl font-black">Schedule board</h1>
           <p className="mt-2 text-[var(--muted-foreground)]">Daily workload, crew capacity, time-window warnings, and overbooking checks.</p>
-          {jobError ? <div className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Scheduling columns are not available yet. Apply db/migrations/007_scheduling_planning.sql.</div> : null}
+          {jobError ? <div className="mt-4 rounded-lg tone-warning p-3 text-sm text-[var(--warning)]">Scheduling columns are not available yet. Apply db/migrations/007_scheduling_planning.sql.</div> : null}
         </div>
-        <form className="flex gap-2"><input className="h-10 rounded-lg border border-[var(--border)] px-3 text-sm" name="date" type="date" defaultValue={date} /><button className="h-10 rounded-lg bg-[var(--primary)] px-4 font-semibold text-white">View</button></form>
+        <form className="flex gap-2"><input className="h-10 rounded-lg border border-[var(--border)] bg-[var(--input)] px-3 text-sm text-[var(--foreground)]" name="date" type="date" defaultValue={date} /><button className="h-10 rounded-lg bg-[var(--primary)] px-4 font-semibold text-[var(--primary-foreground)]">View</button></form>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card><div className="text-sm text-[var(--muted-foreground)]">Crew capacity</div><div className="mt-2 text-2xl font-black">{Math.round(availabilityMinutes(crewAvailability))} min</div></Card>
         <Card><div className="text-sm text-[var(--muted-foreground)]">Job workload</div><div className="mt-2 text-2xl font-black">{capacity.workload} min</div></Card>
         <Card><div className="text-sm text-[var(--muted-foreground)]">Travel buffer</div><div className="mt-2 text-2xl font-black">{capacity.travel} min</div></Card>
-        <Card><div className="text-sm text-[var(--muted-foreground)]">Remaining</div><div className={`mt-2 text-2xl font-black ${capacity.remaining < 0 ? "text-[var(--danger)]" : "text-green-700"}`}>{capacity.remaining} min</div></Card>
+        <Card><div className="text-sm text-[var(--muted-foreground)]">Remaining</div><div className={`mt-2 text-2xl font-black ${capacity.remaining < 0 ? "text-[var(--danger)]" : "text-[var(--success)]"}`}>{capacity.remaining} min</div></Card>
       </div>
 
-      {capacity.warnings.length ? <Card className="border-red-200 bg-red-50"><h2 className="font-bold text-[var(--danger)]">Warnings</h2><ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-red-900">{capacity.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></Card> : <Card className="border-green-200 bg-green-50 text-sm text-green-800">No overbooking warnings for {formatDate(date)}.</Card>}
+      {capacity.warnings.length ? <Card className="border-[color-mix(in_srgb,var(--danger)_35%,var(--border))] tone-danger"><h2 className="font-bold text-[var(--danger)]">Warnings</h2><ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[var(--danger)]">{capacity.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></Card> : <Card className="border-[color-mix(in_srgb,var(--success)_35%,var(--border))] tone-success text-sm text-[var(--success)]">No overbooking warnings for {formatDate(date)}.</Card>}
 
       <Card>
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -80,12 +80,12 @@ export default async function AdminSchedulePage({ searchParams }: { searchParams
           <Link href={`/admin/schedule/slots?duration=${newDuration}&crew=${newCrew}`} className="text-sm font-semibold text-[var(--primary)]">Scan next days</Link>
         </div>
         <form className="mt-4 grid gap-3 md:grid-cols-[1fr_140px_120px_auto]">
-          <label className="grid gap-2 text-sm font-medium">Date<input className="h-10 rounded-lg border border-[var(--border)] px-3 text-sm" name="date" type="date" defaultValue={date} /></label>
-          <label className="grid gap-2 text-sm font-medium">Minutes<input className="h-10 rounded-lg border border-[var(--border)] px-3 text-sm" name="duration" type="number" defaultValue={newDuration} min="15" /></label>
-          <label className="grid gap-2 text-sm font-medium">Crew<input className="h-10 rounded-lg border border-[var(--border)] px-3 text-sm" name="crew" type="number" defaultValue={newCrew} min="1" /></label>
-          <button className="self-end rounded-lg bg-[var(--primary)] px-4 py-2 font-semibold text-white">Check slot</button>
+          <label className="grid gap-2 text-sm font-medium">Date<input className="h-10 rounded-lg border border-[var(--border)] bg-[var(--input)] px-3 text-sm text-[var(--foreground)]" name="date" type="date" defaultValue={date} /></label>
+          <label className="grid gap-2 text-sm font-medium">Minutes<input className="h-10 rounded-lg border border-[var(--border)] bg-[var(--input)] px-3 text-sm text-[var(--foreground)]" name="duration" type="number" defaultValue={newDuration} min="15" /></label>
+          <label className="grid gap-2 text-sm font-medium">Crew<input className="h-10 rounded-lg border border-[var(--border)] bg-[var(--input)] px-3 text-sm text-[var(--foreground)]" name="crew" type="number" defaultValue={newCrew} min="1" /></label>
+          <button className="self-end rounded-lg bg-[var(--primary)] px-4 py-2 font-semibold text-[var(--primary-foreground)]">Check slot</button>
         </form>
-        <div className={`mt-4 rounded-xl p-4 text-sm ${dayHasSlot ? "bg-green-50 text-green-800" : "bg-red-50 text-red-900"}`}>
+        <div className={`mt-4 rounded-xl p-4 text-sm ${dayHasSlot ? "tone-success text-[var(--success)]" : "tone-danger text-[var(--danger)]"}`}>
           {dayHasSlot ? <>Suggested slot: start around <strong>{minutesToTime(suggestedStart)}</strong>. This adds about {newWorkload} crew-minutes including route buffer.</> : <>This day is full or overbooked for a {newDuration}-minute job needing {newCrew} crew. It needs {newWorkload} crew-minutes, but only {capacity.remaining} remain.</>}
         </div>
       </Card>

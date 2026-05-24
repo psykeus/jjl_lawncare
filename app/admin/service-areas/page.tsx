@@ -77,9 +77,9 @@ export default async function AdminServiceAreasPage({ searchParams }: { searchPa
       <div>
         <h1 className="text-3xl font-black">Service areas</h1>
         <p className="mt-2 text-[var(--muted-foreground)]">Manage where customers can request work and what the internal route map should consider in-area.</p>
-        {params.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
-        {params.saved ? <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-green-700">Service area saved.</div> : null}
-        {error ? <div className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Service area table is not available yet. Apply db/migrations/005_service_areas.sql or db/setup.sql in Supabase.</div> : null}
+        {params.error ? <div className="mt-4 rounded-lg tone-danger p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
+        {params.saved ? <div className="mt-4 rounded-lg tone-success p-3 text-sm text-[var(--success)]">Service area saved.</div> : null}
+        {error ? <div className="mt-4 rounded-lg tone-warning p-3 text-sm text-[var(--warning)]">Service area table is not available yet. Apply db/migrations/005_service_areas.sql or db/setup.sql in Supabase.</div> : null}
       </div>
 
       <Card>

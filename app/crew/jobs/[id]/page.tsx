@@ -42,7 +42,7 @@ export default async function CrewJobDetailPage({
         <h1 className="text-3xl font-black">{customer?.name ?? "Job"}</h1>
         <p className="mt-2 text-[var(--muted-foreground)]">{property?.address_line_1}, {property?.city} · {formatDate(job.scheduled_date)} {job.scheduled_start_time ?? ""}</p>
         <div className="mt-3"><StatusBadge status={job.status} /></div>
-        {query.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-[var(--danger)]">{query.error}</div> : null}
+        {query.error ? <div className="mt-4 rounded-lg tone-danger p-3 text-sm text-[var(--danger)]">{query.error}</div> : null}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">

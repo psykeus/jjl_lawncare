@@ -20,7 +20,7 @@ export default async function CustomerDashboardPage() {
           <h1 className="text-3xl font-black">Customer dashboard</h1>
           <p className="mt-2 text-[var(--muted-foreground)]">View requests, estimates, scheduled jobs, and invoices.</p>
         </div>
-        <Link href="/request-quote" className="rounded-lg bg-[var(--primary)] px-4 py-2 font-semibold text-white">Request new quote</Link>
+        <Link href="/request-quote" className="rounded-lg bg-[var(--primary)] px-4 py-2 font-semibold text-[var(--primary-foreground)]">Request new quote</Link>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">

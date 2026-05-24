@@ -49,7 +49,7 @@ export default async function HomePage() {
       </section>
 
       {coreServices.length ? (
-        <section className="bg-white py-12">
+        <section className="bg-[var(--card)] py-12">
           <div className="container-page space-y-6">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>

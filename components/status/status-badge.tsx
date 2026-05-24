@@ -15,7 +15,7 @@ export function StatusBadge({ status }: { status: string | null | undefined }) {
         ? "success"
         : infoStatuses.has(normalized)
           ? "info"
-          : "default";
+          : "neutral";
 
   return <Badge variant={variant}>{normalized.replaceAll("_", " ")}</Badge>;
 }
