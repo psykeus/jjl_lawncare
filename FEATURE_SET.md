@@ -302,6 +302,7 @@
 
 - Supabase schema migrations
 - RLS policies
+- Tightened expense read policy so customer accounts cannot read internal expense records through job access
 - Seed data
 - Service-area schema and policies
 - Service-question/options schema and policies
