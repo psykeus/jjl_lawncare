@@ -20,12 +20,12 @@ export function PublicMobileMenu() {
 
   return (
     <>
-      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)} className="md:hidden" aria-label="Open site menu">
+      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)} className="lg:hidden" aria-label="Open site menu">
         <Menu className="h-4 w-4" aria-hidden="true" />
         Menu
       </Button>
       {open ? (
-        <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="Site menu">
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Site menu">
           <button type="button" className="absolute inset-0 bg-black/45" aria-label="Close site menu" onClick={() => setOpen(false)} />
           <div className="absolute inset-x-3 top-3 rounded-3xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-2xl">
             <div className="mb-4 flex items-center justify-between gap-3">

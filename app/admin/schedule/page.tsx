@@ -1,5 +1,9 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/layout/page-header";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Field, Input } from "@/components/ui/input";
+import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import { createClient } from "@/lib/supabase/server";
 import { availabilityMinutes, buildRouteTimeline, findCapacityWarnings, jobWorkloadMinutes, minutesToTime, type CrewAvailability, type PlannerJob } from "@/lib/schedule/planner";
 import { formatDate } from "@/lib/utils";
@@ -53,21 +57,20 @@ export default async function AdminSchedulePage({ searchParams }: { searchParams
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-black">Schedule board</h1>
-          <p className="mt-2 text-[var(--muted-foreground)]">Daily workload, crew capacity, time-window warnings, and overbooking checks.</p>
-          {jobError ? <div className="mt-4 rounded-lg tone-warning p-3 text-sm text-[var(--warning)]">Scheduling columns are not available yet. Apply db/migrations/007_scheduling_planning.sql.</div> : null}
-        </div>
-        <form className="flex gap-2"><input className="h-10 rounded-lg border border-[var(--border)] bg-[var(--input)] px-3 text-sm text-[var(--foreground)]" name="date" type="date" defaultValue={date} /><button className="h-10 rounded-lg bg-[var(--primary)] px-4 font-semibold text-[var(--primary-foreground)]">View</button></form>
-      </div>
+      <PageHeader
+        eyebrow="Operations"
+        title="Schedule board"
+        description="Daily workload, crew capacity, time-window warnings, and overbooking checks."
+        actions={<form className="grid gap-2 sm:flex"><Input name="date" type="date" defaultValue={date} /><Button type="submit">View</Button></form>}
+      />
+      {jobError ? <div className="rounded-lg tone-warning p-3 text-sm text-[var(--warning)]">Scheduling columns are not available yet. Apply db/migrations/007_scheduling_planning.sql.</div> : null}
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card><div className="text-sm text-[var(--muted-foreground)]">Crew capacity</div><div className="mt-2 text-2xl font-black">{Math.round(availabilityMinutes(crewAvailability))} min</div></Card>
-        <Card><div className="text-sm text-[var(--muted-foreground)]">Job workload</div><div className="mt-2 text-2xl font-black">{capacity.workload} min</div></Card>
-        <Card><div className="text-sm text-[var(--muted-foreground)]">Travel buffer</div><div className="mt-2 text-2xl font-black">{capacity.travel} min</div></Card>
-        <Card><div className="text-sm text-[var(--muted-foreground)]">Remaining</div><div className={`mt-2 text-2xl font-black ${capacity.remaining < 0 ? "text-[var(--danger)]" : "text-[var(--success)]"}`}>{capacity.remaining} min</div></Card>
-      </div>
+      <StatGrid>
+        <StatCard label="Crew capacity" value={`${Math.round(availabilityMinutes(crewAvailability))} min`} />
+        <StatCard label="Job workload" value={`${capacity.workload} min`} />
+        <StatCard label="Travel buffer" value={`${capacity.travel} min`} />
+        <StatCard label="Remaining" value={<span className={capacity.remaining < 0 ? "text-[var(--danger)]" : "text-[var(--success)]"}>{capacity.remaining} min</span>} />
+      </StatGrid>
 
       {capacity.warnings.length ? <Card className="border-[color-mix(in_srgb,var(--danger)_35%,var(--border))] tone-danger"><h2 className="font-bold text-[var(--danger)]">Warnings</h2><ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[var(--danger)]">{capacity.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></Card> : <Card className="border-[color-mix(in_srgb,var(--success)_35%,var(--border))] tone-success text-sm text-[var(--success)]">No overbooking warnings for {formatDate(date)}.</Card>}
 
@@ -80,10 +83,10 @@ export default async function AdminSchedulePage({ searchParams }: { searchParams
           <Link href={`/admin/schedule/slots?duration=${newDuration}&crew=${newCrew}`} className="text-sm font-semibold text-[var(--primary)]">Scan next days</Link>
         </div>
         <form className="mt-4 grid gap-3 md:grid-cols-[1fr_140px_120px_auto]">
-          <label className="grid gap-2 text-sm font-medium">Date<input className="h-10 rounded-lg border border-[var(--border)] bg-[var(--input)] px-3 text-sm text-[var(--foreground)]" name="date" type="date" defaultValue={date} /></label>
-          <label className="grid gap-2 text-sm font-medium">Minutes<input className="h-10 rounded-lg border border-[var(--border)] bg-[var(--input)] px-3 text-sm text-[var(--foreground)]" name="duration" type="number" defaultValue={newDuration} min="15" /></label>
-          <label className="grid gap-2 text-sm font-medium">Crew<input className="h-10 rounded-lg border border-[var(--border)] bg-[var(--input)] px-3 text-sm text-[var(--foreground)]" name="crew" type="number" defaultValue={newCrew} min="1" /></label>
-          <button className="self-end rounded-lg bg-[var(--primary)] px-4 py-2 font-semibold text-[var(--primary-foreground)]">Check slot</button>
+          <Field label="Date"><Input name="date" type="date" defaultValue={date} /></Field>
+          <Field label="Minutes"><Input name="duration" type="number" defaultValue={newDuration} min="15" /></Field>
+          <Field label="Crew"><Input name="crew" type="number" defaultValue={newCrew} min="1" /></Field>
+          <Button className="self-end" type="submit">Check slot</Button>
         </form>
         <div className={`mt-4 rounded-xl p-4 text-sm ${dayHasSlot ? "tone-success text-[var(--success)]" : "tone-danger text-[var(--danger)]"}`}>
           {dayHasSlot ? <>Suggested slot: start around <strong>{minutesToTime(suggestedStart)}</strong>. This adds about {newWorkload} crew-minutes including route buffer.</> : <>This day is full or overbooked for a {newDuration}-minute job needing {newCrew} crew. It needs {newWorkload} crew-minutes, but only {capacity.remaining} remain.</>}
@@ -92,7 +95,7 @@ export default async function AdminSchedulePage({ searchParams }: { searchParams
 
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <Card className="overflow-x-auto p-0">
-          <table className="w-full text-left text-sm"><thead className="bg-[var(--muted)]"><tr><th className="p-3">Job</th><th className="p-3">Window</th><th className="p-3">Workload</th><th className="p-3">Crew</th><th className="p-3">Status</th></tr></thead><tbody>{plannerJobs.map((job) => <tr key={job.id} className="border-t border-[var(--border)]"><td className="p-3 font-semibold"><Link href={`/admin/jobs/${job.id}`}>{job.customerName}</Link><div className="text-xs font-normal text-[var(--muted-foreground)]">{job.address}, {job.city}</div></td><td className="p-3">{job.scheduledStartTime ?? job.earliestStartTime ?? "—"}–{job.scheduledEndTime ?? job.latestEndTime ?? "—"}</td><td className="p-3">{jobWorkloadMinutes(job)} crew-min</td><td className="p-3">{job.requiredCrewSize ?? 1}</td><td className="p-3">{job.status}</td></tr>)}{plannerJobs.length ? null : <tr><td className="p-3 text-[var(--muted-foreground)]" colSpan={5}>No jobs scheduled for this day.</td></tr>}</tbody></table>
+          <table className="min-w-[760px] w-full text-left text-sm"><thead className="bg-[var(--muted)]"><tr><th className="p-3">Job</th><th className="p-3">Window</th><th className="p-3">Workload</th><th className="p-3">Crew</th><th className="p-3">Status</th></tr></thead><tbody>{plannerJobs.map((job) => <tr key={job.id} className="border-t border-[var(--border)]"><td className="p-3 font-semibold"><Link href={`/admin/jobs/${job.id}`}>{job.customerName}</Link><div className="text-xs font-normal text-[var(--muted-foreground)]">{job.address}, {job.city}</div></td><td className="p-3 whitespace-nowrap">{job.scheduledStartTime ?? job.earliestStartTime ?? "—"}–{job.scheduledEndTime ?? job.latestEndTime ?? "—"}</td><td className="p-3 whitespace-nowrap">{jobWorkloadMinutes(job)} crew-min</td><td className="p-3 whitespace-nowrap">{job.requiredCrewSize ?? 1}</td><td className="p-3 whitespace-nowrap">{job.status}</td></tr>)}{plannerJobs.length ? null : <tr><td className="p-3 text-[var(--muted-foreground)]" colSpan={5}>No jobs scheduled for this day.</td></tr>}</tbody></table>
         </Card>
         <Card><h2 className="text-xl font-bold">Available crew</h2><div className="mt-4 grid gap-3 text-sm">{crewAvailability.map((row) => <div key={row.id} className="rounded-lg bg-[var(--muted)] p-3"><strong>{row.crewName}</strong><br />{minutesToTime(Number(row.startTime.split(":")[0]) * 60 + Number(row.startTime.split(":")[1]))}–{minutesToTime(Number(row.endTime.split(":")[0]) * 60 + Number(row.endTime.split(":")[1]))}</div>)}{crewAvailability.length ? null : <p className="text-[var(--muted-foreground)]">No availability entered. <Link href="/admin/crew/availability" className="font-semibold text-[var(--primary)]">Add availability</Link>.</p>}</div></Card>
       </div>

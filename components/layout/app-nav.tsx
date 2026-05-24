@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { ChevronDown, Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { AppRole } from "@/lib/auth/session";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { getFlatNav, navGroupsByRole } from "./nav-config";
+import { getFlatNav, navGroupsByRole, type NavGroup } from "./nav-config";
 
 function isActive(pathname: string, href: string) {
   if (pathname === href) return true;
@@ -25,7 +25,7 @@ function NavLink({ href, label, onClick }: { href: string; label: string; onClic
       onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "focus-ring rounded-xl px-3 py-2 text-sm font-semibold transition",
+        "focus-ring block rounded-xl px-3 py-2 text-sm font-semibold transition",
         active
           ? "bg-[var(--primary)] text-[var(--primary-foreground)] shadow-sm"
           : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
@@ -36,17 +36,43 @@ function NavLink({ href, label, onClick }: { href: string; label: string; onClic
   );
 }
 
+function NavGroupSection({ group, defaultOpen = false, onNavigate }: { group: NavGroup; defaultOpen?: boolean; onNavigate?: () => void }) {
+  const pathname = usePathname();
+  const panelId = useId();
+  const active = group.items.some((item) => isActive(pathname, item.href));
+  const [userOpen, setUserOpen] = useState<boolean | null>(null);
+  const open = userOpen ?? (defaultOpen || active);
+
+  return (
+    <section className="grid gap-1">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setUserOpen(open ? false : true)}
+        className="focus-ring flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-[0.68rem] font-black uppercase tracking-[0.18em] text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+      >
+        <span>{group.label}</span>
+        <span className="flex items-center gap-1 text-[0.65rem] tracking-normal">
+          {group.items.length}
+          <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", open ? "rotate-180" : "rotate-0")} aria-hidden="true" />
+        </span>
+      </button>
+      <div id={panelId} className={cn("gap-1 pl-2", open ? "grid" : "hidden")}>
+        {group.items.map((item) => (
+          <NavLink key={item.href} href={item.href} label={item.label} onClick={onNavigate} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function DesktopSidebarNav({ role }: { role: AppRole }) {
   return (
-    <aside className="hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-sm lg:sticky lg:top-4 lg:block lg:self-start">
-      <nav className="grid gap-5" aria-label="Main navigation">
-        {navGroupsByRole[role].map((group) => (
-          <div key={group.label} className="grid gap-1">
-            <p className="px-3 text-[0.68rem] font-black uppercase tracking-[0.18em] text-[var(--muted-foreground)]">{group.label}</p>
-            {group.items.map((item) => (
-              <NavLink key={item.href} href={item.href} label={item.label} />
-            ))}
-          </div>
+    <aside className="hidden max-h-[calc(100vh-5rem)] overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-sm lg:sticky lg:top-4 lg:block lg:self-start">
+      <nav className="grid gap-3" aria-label="Main navigation">
+        {navGroupsByRole[role].map((group, index) => (
+          <NavGroupSection key={group.label} group={group} defaultOpen={index === 0} />
         ))}
       </nav>
     </aside>
@@ -75,14 +101,9 @@ export function MobileNavButton({ role }: { role: AppRole }) {
                 <X className="h-5 w-5" aria-hidden="true" />
               </Button>
             </div>
-            <nav className="grid gap-5" aria-label="Mobile navigation">
-              {navGroupsByRole[role].map((group) => (
-                <div key={group.label} className="grid gap-1">
-                  <p className="px-3 text-[0.68rem] font-black uppercase tracking-[0.18em] text-[var(--muted-foreground)]">{group.label}</p>
-                  {group.items.map((item) => (
-                    <NavLink key={item.href} href={item.href} label={item.label} onClick={() => setOpen(false)} />
-                  ))}
-                </div>
+            <nav className="grid gap-3 pb-4" aria-label="Mobile navigation">
+              {navGroupsByRole[role].map((group, index) => (
+                <NavGroupSection key={group.label} group={group} defaultOpen={index === 0} onNavigate={() => setOpen(false)} />
               ))}
             </nav>
           </div>
@@ -97,7 +118,7 @@ export function MobileBottomNav({ role }: { role: AppRole }) {
   const items = getFlatNav(role).slice(0, 4);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border)] bg-[var(--card)]/95 px-2 py-2 shadow-[0_-12px_30px_rgba(0,0,0,0.08)] backdrop-blur lg:hidden" aria-label="Quick navigation">
+    <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border)] bg-[var(--card)]/95 px-2 pt-2 shadow-[0_-12px_30px_rgba(0,0,0,0.08)] backdrop-blur lg:hidden" aria-label="Quick navigation">
       <div className="mx-auto grid max-w-xl grid-cols-4 gap-1">
         {items.map((item) => {
           const active = isActive(pathname, item.href);

@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/layout/page-header";
+import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/status/status-badge";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -14,26 +17,25 @@ export default async function CustomerDashboardPage() {
   ]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-black">Customer dashboard</h1>
-          <p className="mt-2 text-[var(--muted-foreground)]">View requests, estimates, scheduled jobs, and invoices.</p>
-        </div>
-        <Link href="/request-quote" className="rounded-lg bg-[var(--primary)] px-4 py-2 font-semibold text-[var(--primary-foreground)]">Request new quote</Link>
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        eyebrow="Customer portal"
+        title="Customer dashboard"
+        description="View requests, estimates, scheduled jobs, and invoices."
+        actions={<ButtonLink href="/request-quote">Request new quote</ButtonLink>}
+      />
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card><div className="text-sm text-[var(--muted-foreground)]">Requests</div><div className="mt-2 text-3xl font-black">{requestCount ?? 0}</div></Card>
-        <Card><div className="text-sm text-[var(--muted-foreground)]">Estimates</div><div className="mt-2 text-3xl font-black">{estimates?.length ?? 0}</div></Card>
-        <Card><div className="text-sm text-[var(--muted-foreground)]">Invoices</div><div className="mt-2 text-3xl font-black">{invoices?.length ?? 0}</div></Card>
-        <Card><div className="text-sm text-[var(--muted-foreground)]">Jobs</div><div className="mt-2 text-3xl font-black">{jobs?.length ?? 0}</div></Card>
-      </div>
+      <StatGrid>
+        <StatCard label="Requests" value={requestCount ?? 0} hint="Quote requests" />
+        <StatCard label="Estimates" value={estimates?.length ?? 0} hint="Recent estimates" />
+        <StatCard label="Invoices" value={invoices?.length ?? 0} hint="Recent invoices" />
+        <StatCard label="Jobs" value={jobs?.length ?? 0} hint="Scheduled work" />
+      </StatGrid>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card><h2 className="text-xl font-bold">Recent estimates</h2><div className="mt-4 grid gap-3 text-sm">{(estimates ?? []).map((estimate) => <Link key={estimate.id} href={`/customer/estimates/${estimate.id}`} className="rounded-lg bg-[var(--muted)] p-3"><strong>{estimate.document_number}</strong><br />{formatCurrency(Number(estimate.total))} · {estimate.status} · expires {formatDate(estimate.expiration_date)}</Link>)}{estimates?.length ? null : <p className="text-[var(--muted-foreground)]">No estimates yet.</p>}</div></Card>
-        <Card><h2 className="text-xl font-bold">Recent invoices</h2><div className="mt-4 grid gap-3 text-sm">{(invoices ?? []).map((invoice) => <Link key={invoice.id} href={`/customer/invoices/${invoice.id}`} className="rounded-lg bg-[var(--muted)] p-3"><strong>{invoice.document_number}</strong><br />Balance {formatCurrency(Number(invoice.balance_due))} · {invoice.status} · due {formatDate(invoice.due_date)}</Link>)}{invoices?.length ? null : <p className="text-[var(--muted-foreground)]">No invoices yet.</p>}</div></Card>
-        <Card><h2 className="text-xl font-bold">Upcoming jobs</h2><div className="mt-4 grid gap-3 text-sm">{(jobs ?? []).map((job) => <div key={job.id} className="rounded-lg bg-[var(--muted)] p-3"><div className="flex items-center justify-between gap-3"><span>{formatDate(job.scheduled_date)} {job.scheduled_start_time ?? ""}</span><StatusBadge status={job.status} /></div></div>)}{jobs?.length ? null : <p className="text-[var(--muted-foreground)]">No jobs scheduled yet.</p>}</div></Card>
+        <Card><h2 className="text-xl font-bold">Recent estimates</h2><div className="mt-4 grid gap-3 text-sm">{(estimates ?? []).map((estimate) => <Link key={estimate.id} href={`/customer/estimates/${estimate.id}`} className="grid gap-2 rounded-xl bg-[var(--muted)] p-3 hover:brightness-95"><div className="flex items-center justify-between gap-3"><strong>{estimate.document_number}</strong><StatusBadge status={estimate.status} /></div><span>{formatCurrency(Number(estimate.total))} · expires {formatDate(estimate.expiration_date)}</span></Link>)}{estimates?.length ? null : <p className="text-[var(--muted-foreground)]">No estimates yet.</p>}</div></Card>
+        <Card><h2 className="text-xl font-bold">Recent invoices</h2><div className="mt-4 grid gap-3 text-sm">{(invoices ?? []).map((invoice) => <Link key={invoice.id} href={`/customer/invoices/${invoice.id}`} className="grid gap-2 rounded-xl bg-[var(--muted)] p-3 hover:brightness-95"><div className="flex items-center justify-between gap-3"><strong>{invoice.document_number}</strong><StatusBadge status={invoice.status} /></div><span>Balance {formatCurrency(Number(invoice.balance_due))} · due {formatDate(invoice.due_date)}</span></Link>)}{invoices?.length ? null : <p className="text-[var(--muted-foreground)]">No invoices yet.</p>}</div></Card>
+        <Card><h2 className="text-xl font-bold">Upcoming jobs</h2><div className="mt-4 grid gap-3 text-sm">{(jobs ?? []).map((job) => <div key={job.id} className="rounded-xl bg-[var(--muted)] p-3"><div className="flex flex-wrap items-center justify-between gap-3"><span>{formatDate(job.scheduled_date)} {job.scheduled_start_time ?? ""}</span><StatusBadge status={job.status} /></div></div>)}{jobs?.length ? null : <p className="text-[var(--muted-foreground)]">No jobs scheduled yet.</p>}</div></Card>
       </div>
     </div>
   );

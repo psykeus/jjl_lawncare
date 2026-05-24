@@ -1,5 +1,9 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/layout/page-header";
+import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/status/status-badge";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -34,34 +38,52 @@ export default async function CrewDashboardPage() {
   }, 0);
   const unreimbursedExpenses = (expenses ?? []).filter((expense) => !expense.reimbursed).reduce((sum, expense) => sum + Number(expense.amount ?? 0), 0);
   const roughCrewShare = Math.max(0, (paidRevenue - unreimbursedExpenses) / 3);
+  const rows = jobs ?? [];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-black">Crew dashboard</h1>
-          <p className="mt-2 text-[var(--muted-foreground)]">Quick access to assigned jobs, map, checklists, photos, and estimated earnings.</p>
+    <div className="space-y-5">
+      <PageHeader
+        eyebrow="Field work"
+        title="Crew dashboard"
+        description="Quick access to assigned jobs, map, checklists, photos, and estimated earnings."
+        actions={<ButtonLink href="/crew/map">Open map</ButtonLink>}
+      />
+
+      <StatGrid>
+        <StatCard label="Today" value={todayJobs.length} hint="Jobs scheduled today" />
+        <StatCard label="Open jobs" value={openJobs.length} hint="Assigned active work" />
+        <StatCard label="Paid revenue" value={formatCurrency(paidRevenue)} hint="Paid completed work" />
+        <StatCard label="Rough share" value={formatCurrency(roughCrewShare)} hint="Estimated crew split" />
+      </StatGrid>
+
+      {rows.length ? (
+        <div className="grid gap-3 md:hidden">
+          {rows.map((job) => {
+            const customer = one(job.customers);
+            const property = one(job.properties);
+            return (
+              <Card key={job.id} className="grid gap-3 p-4">
+                <div className="flex items-start justify-between gap-3"><Link href={`/crew/jobs/${job.id}`} className="font-black text-[var(--primary)]">{customer?.name ?? "Job"}</Link><StatusBadge status={job.status} /></div>
+                <p className="text-sm text-[var(--muted-foreground)]">{property?.address_line_1 ?? "No address"}{property?.city ? `, ${property.city}` : ""}</p>
+                <div className="flex items-center justify-between gap-3 text-sm"><span>{formatDate(job.scheduled_date)} {job.scheduled_start_time ?? ""}</span><span>{job.estimated_duration_minutes ?? 60} min</span></div>
+              </Card>
+            );
+          })}
         </div>
-        <Link href="/crew/map" className="rounded-lg bg-[var(--primary)] px-4 py-2 font-semibold text-[var(--primary-foreground)]">Open map</Link>
-      </div>
+      ) : (
+        <div className="md:hidden"><EmptyState title="No assigned open jobs" description="Assigned work will appear here when it is scheduled." /></div>
+      )}
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card><div className="text-sm text-[var(--muted-foreground)]">Today</div><div className="mt-2 text-3xl font-black">{todayJobs.length}</div></Card>
-        <Card><div className="text-sm text-[var(--muted-foreground)]">Open jobs</div><div className="mt-2 text-3xl font-black">{openJobs.length}</div></Card>
-        <Card><div className="text-sm text-[var(--muted-foreground)]">Paid revenue</div><div className="mt-2 text-3xl font-black">{formatCurrency(paidRevenue)}</div></Card>
-        <Card><div className="text-sm text-[var(--muted-foreground)]">Rough share</div><div className="mt-2 text-3xl font-black">{formatCurrency(roughCrewShare)}</div></Card>
-      </div>
-
-      <Card className="overflow-x-auto p-0">
-        <table className="w-full text-left text-sm">
+      <Card className="hidden overflow-x-auto p-0 md:block">
+        <table className="min-w-[760px] w-full text-left text-sm">
           <thead className="bg-[var(--muted)]"><tr><th className="p-3">Job</th><th className="p-3">Address</th><th className="p-3">Scheduled</th><th className="p-3">Duration</th><th className="p-3">Status</th></tr></thead>
           <tbody>
-            {(jobs ?? []).map((job) => {
+            {rows.map((job) => {
               const customer = one(job.customers);
               const property = one(job.properties);
-              return <tr key={job.id} className="border-t border-[var(--border)] hover:bg-[var(--muted)]"><td className="p-3 font-semibold"><Link href={`/crew/jobs/${job.id}`}>{customer?.name ?? "Job"}</Link></td><td className="p-3">{property?.address_line_1}, {property?.city}</td><td className="p-3">{formatDate(job.scheduled_date)} {job.scheduled_start_time ?? ""}</td><td className="p-3">{job.estimated_duration_minutes ?? 60} min</td><td className="p-3"><StatusBadge status={job.status} /></td></tr>;
+              return <tr key={job.id} className="border-t border-[var(--border)] align-top hover:bg-[var(--muted)]"><td className="p-3 font-semibold"><Link href={`/crew/jobs/${job.id}`}>{customer?.name ?? "Job"}</Link></td><td className="p-3">{property?.address_line_1}, {property?.city}</td><td className="p-3 whitespace-nowrap">{formatDate(job.scheduled_date)} {job.scheduled_start_time ?? ""}</td><td className="p-3 whitespace-nowrap">{job.estimated_duration_minutes ?? 60} min</td><td className="p-3 whitespace-nowrap"><StatusBadge status={job.status} /></td></tr>;
             })}
-            {jobs?.length ? null : <tr><td colSpan={5} className="p-3 text-[var(--muted-foreground)]">No assigned open jobs.</td></tr>}
+            {rows.length ? null : <tr><td colSpan={5} className="p-3 text-[var(--muted-foreground)]">No assigned open jobs.</td></tr>}
           </tbody>
         </table>
       </Card>

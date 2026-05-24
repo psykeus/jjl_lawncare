@@ -17,15 +17,15 @@ export function PublicHeader() {
     <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--card)]/90 backdrop-blur">
       <div className="container-page flex min-h-16 items-center justify-between gap-3 py-3">
         <BrandLogo />
-        <nav className="hidden items-center gap-5 text-sm font-medium md:flex" aria-label="Site navigation">
+        <nav className="hidden items-center gap-4 text-sm font-medium lg:flex" aria-label="Site navigation">
           {links.map(([label, href]) => (
-            <Link key={href} href={href} className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
+            <Link key={href} href={href} className="focus-ring rounded-lg px-2 py-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
               {label}
             </Link>
           ))}
         </nav>
         <div className="flex items-center gap-2">
-          <div className="hidden md:block">
+          <div className="hidden lg:block">
             <ThemeToggle />
           </div>
           <ButtonLink href="/auth/login" variant="ghost" className="hidden sm:inline-flex">

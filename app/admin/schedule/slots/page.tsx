@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/layout/page-header";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Field, Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/server";
 import { buildRouteTimeline, findCapacityWarnings, minutesToTime, type CrewAvailability, type PlannerJob } from "@/lib/schedule/planner";
 import { formatDate } from "@/lib/utils";
@@ -42,17 +45,17 @@ export default async function SlotFinderPage({ searchParams }: { searchParams: P
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href="/admin/schedule" className="text-sm font-semibold text-[var(--primary)]">← Schedule</Link>
-        <h1 className="mt-2 text-3xl font-black">Available slot finder</h1>
-        <p className="mt-2 text-[var(--muted-foreground)]">Find candidate days for a new job using duration, required crew, existing workload, travel buffer, and entered crew availability.</p>
-      </div>
+      <PageHeader
+        eyebrow={<Link href="/admin/schedule" className="text-[var(--primary)]">← Schedule</Link>}
+        title="Available slot finder"
+        description="Find candidate days for a new job using duration, required crew, existing workload, travel buffer, and entered crew availability."
+      />
       <Card>
         <form className="grid gap-3 md:grid-cols-[140px_120px_120px_auto]">
-          <label className="grid gap-2 text-sm font-medium">Minutes<input className="h-10 rounded-lg border border-[var(--border)] bg-[var(--input)] px-3 text-[var(--foreground)]" name="duration" type="number" min="15" defaultValue={duration} /></label>
-          <label className="grid gap-2 text-sm font-medium">Crew<input className="h-10 rounded-lg border border-[var(--border)] bg-[var(--input)] px-3 text-[var(--foreground)]" name="crew" type="number" min="1" defaultValue={crewNeeded} /></label>
-          <label className="grid gap-2 text-sm font-medium">Days<input className="h-10 rounded-lg border border-[var(--border)] bg-[var(--input)] px-3 text-[var(--foreground)]" name="days" type="number" min="1" max="30" defaultValue={days} /></label>
-          <button className="self-end rounded-lg bg-[var(--primary)] px-4 py-2 font-semibold text-[var(--primary-foreground)]">Find slots</button>
+          <Field label="Minutes"><Input name="duration" type="number" min="15" defaultValue={duration} /></Field>
+          <Field label="Crew"><Input name="crew" type="number" min="1" defaultValue={crewNeeded} /></Field>
+          <Field label="Days"><Input name="days" type="number" min="1" max="30" defaultValue={days} /></Field>
+          <Button className="self-end" type="submit">Find slots</Button>
         </form>
       </Card>
       <Card>
@@ -63,7 +66,7 @@ export default async function SlotFinderPage({ searchParams }: { searchParams: P
         </div>
       </Card>
       <Card className="overflow-x-auto p-0">
-        <table className="w-full text-left text-sm"><thead className="bg-[var(--muted)]"><tr><th className="p-3">Date</th><th className="p-3">Jobs</th><th className="p-3">Crew</th><th className="p-3">Remaining</th><th className="p-3">Result</th></tr></thead><tbody>{rows.map((row) => <tr key={row.date} className="border-t border-[var(--border)]"><td className="p-3"><Link className="font-semibold text-[var(--primary)]" href={`/admin/schedule?date=${row.date}&duration=${duration}&crew=${crewNeeded}`}>{formatDate(row.date)}</Link></td><td className="p-3">{row.plannerJobs.length}</td><td className="p-3">{row.crewAvailability.length}</td><td className="p-3">{row.capacity.remaining} min</td><td className={`p-3 font-semibold ${row.fits ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>{row.fits ? `Fits around ${minutesToTime(row.suggestedStart)}` : "Full / unavailable"}</td></tr>)}</tbody></table>
+        <table className="min-w-[680px] w-full text-left text-sm"><thead className="bg-[var(--muted)]"><tr><th className="p-3">Date</th><th className="p-3">Jobs</th><th className="p-3">Crew</th><th className="p-3">Remaining</th><th className="p-3">Result</th></tr></thead><tbody>{rows.map((row) => <tr key={row.date} className="border-t border-[var(--border)]"><td className="p-3"><Link className="font-semibold text-[var(--primary)]" href={`/admin/schedule?date=${row.date}&duration=${duration}&crew=${crewNeeded}`}>{formatDate(row.date)}</Link></td><td className="p-3">{row.plannerJobs.length}</td><td className="p-3">{row.crewAvailability.length}</td><td className="p-3 whitespace-nowrap">{row.capacity.remaining} min</td><td className={`p-3 font-semibold ${row.fits ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>{row.fits ? `Fits around ${minutesToTime(row.suggestedStart)}` : "Full / unavailable"}</td></tr>)}</tbody></table>
       </Card>
     </div>
   );

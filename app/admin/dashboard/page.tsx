@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/layout/page-header";
 import { ButtonLink } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/status/status-badge";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -103,29 +105,24 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black">Admin command center</h1>
-          <p className="mt-2 text-[var(--muted-foreground)]">All admin work starts here: intake, services, scheduling, routes, money, users, access rights, and analytics.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <ButtonLink href="/admin/quote-requests">Review requests</ButtonLink>
-          <ButtonLink href="/admin/users" variant="outline">Manage users</ButtonLink>
-          <ButtonLink href="/admin/jobs/new" variant="outline">Enter job</ButtonLink>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Command center"
+        title="Admin dashboard"
+        description="All admin work starts here: intake, services, scheduling, routes, money, users, access rights, and analytics."
+        actions={
+          <>
+            <ButtonLink href="/admin/quote-requests">Review requests</ButtonLink>
+            <ButtonLink href="/admin/users" variant="outline">Manage users</ButtonLink>
+            <ButtonLink href="/admin/jobs/new" variant="outline">Enter job</ButtonLink>
+          </>
+        }
+      />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <StatGrid>
         {cards.map(([title, value, description]) => (
-          <Card key={String(title)}>
-            <CardHeader>
-              <CardDescription>{description}</CardDescription>
-              <CardTitle className="text-3xl">{value}</CardTitle>
-            </CardHeader>
-            <div className="text-sm font-semibold">{title}</div>
-          </Card>
+          <StatCard key={String(title)} label={title} value={value} hint={description} />
         ))}
-      </div>
+      </StatGrid>
 
       <div className="grid gap-4 xl:grid-cols-2">
         {operations.map((group) => (
@@ -150,7 +147,7 @@ export default async function AdminDashboardPage() {
           <div className="mt-4 grid gap-3 text-sm">
             {(recentRequests.data ?? []).map((request) => {
               const customer = Array.isArray(request.customers) ? request.customers[0] : request.customers;
-              return <Link key={request.id} href={`/admin/quote-requests/${request.id}`} className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] p-3 hover:bg-[var(--muted)]"><span className="font-semibold">{customer?.name ?? "Unknown"}</span><span className="flex gap-2"><StatusBadge status={request.status} /><StatusBadge status={request.risk_level} /></span><span className="text-xs text-[var(--muted-foreground)]">{formatDate(request.created_at)}</span></Link>;
+              return <Link key={request.id} href={`/admin/quote-requests/${request.id}`} className="grid gap-2 rounded-xl border border-[var(--border)] p-3 hover:bg-[var(--muted)] sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center"><span className="min-w-0 font-semibold">{customer?.name ?? "Unknown"}</span><span className="flex flex-wrap gap-2"><StatusBadge status={request.status} /><StatusBadge status={request.risk_level} /></span><span className="text-xs text-[var(--muted-foreground)]">{formatDate(request.created_at)}</span></Link>;
             })}
             {recentRequests.data?.length ? null : <p className="text-sm text-[var(--muted-foreground)]">No recent requests.</p>}
           </div>
@@ -160,7 +157,7 @@ export default async function AdminDashboardPage() {
           <div className="mt-4 grid gap-3 text-sm">
             {(recentJobs.data ?? []).map((job) => {
               const customer = Array.isArray(job.customers) ? job.customers[0] : job.customers;
-              return <Link key={job.id} href={`/admin/jobs/${job.id}`} className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] p-3 hover:bg-[var(--muted)]"><span className="font-semibold">{customer?.name ?? "Job"}</span><StatusBadge status={job.status} /><span className="text-xs text-[var(--muted-foreground)]">{formatDate(job.scheduled_date)}</span></Link>;
+              return <Link key={job.id} href={`/admin/jobs/${job.id}`} className="grid gap-2 rounded-xl border border-[var(--border)] p-3 hover:bg-[var(--muted)] sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center"><span className="min-w-0 font-semibold">{customer?.name ?? "Job"}</span><StatusBadge status={job.status} /><span className="text-xs text-[var(--muted-foreground)]">{formatDate(job.scheduled_date)}</span></Link>;
             })}
             {recentJobs.data?.length ? null : <p className="text-sm text-[var(--muted-foreground)]">No upcoming jobs.</p>}
           </div>
