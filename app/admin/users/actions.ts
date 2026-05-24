@@ -34,6 +34,12 @@ const accountActionSchema = z.object({
   authUserId: z.string().uuid(),
 });
 
+const passwordResetSchema = z.object({
+  profileId: z.string().uuid(),
+  authUserId: z.string().uuid(),
+  email: z.string().trim().email("Valid email is required"),
+});
+
 async function findAuthUserByEmail(email: string) {
   const supabase = createAdminClient();
   let page = 1;
@@ -128,6 +134,25 @@ export async function updateUserAccess(formData: FormData) {
   revalidatePath("/admin/users");
   revalidatePath("/admin/dashboard");
   redirect("/admin/users?saved=1");
+}
+
+export async function sendPasswordResetEmail(formData: FormData) {
+  const actor = await requireRole(["admin"]);
+  const parsed = passwordResetSchema.safeParse({
+    profileId: formData.get("profileId"),
+    authUserId: formData.get("authUserId"),
+    email: formData.get("email"),
+  });
+  if (!parsed.success) redirect(`/admin/users?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Invalid password reset request")}`);
+  const input = parsed.data;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const redirectTo = `${appUrl}/auth/callback?next=${encodeURIComponent("/auth/update-password")}`;
+  const supabase = createAdminClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(input.email, { redirectTo });
+  if (error) redirect(`/admin/users?error=${encodeURIComponent(error.message)}`);
+  await supabase.from("activity_log").insert({ actor_id: actor.id, action: "user_password_reset_sent", related_type: "profile", related_id: input.profileId, metadata_json: { authUserId: input.authUserId, email: input.email } });
+  revalidatePath("/admin/users");
+  redirect("/admin/users?reset=1");
 }
 
 export async function archiveUserAccount(formData: FormData) {

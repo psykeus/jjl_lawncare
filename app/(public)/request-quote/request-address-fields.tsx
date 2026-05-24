@@ -51,7 +51,17 @@ function componentValue(place: any, type: string, short = false) {
   return component ? String(short ? component.short_name : component.long_name) : "";
 }
 
-export function RequestAddressFields({ apiKey }: { apiKey?: string | null }) {
+export type RequestAddressDefaults = {
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
+};
+
+export function RequestAddressFields({ apiKey, defaults }: { apiKey?: string | null; defaults?: RequestAddressDefaults | null }) {
   const addressRef = useRef<HTMLInputElement>(null);
   const cityRef = useRef<HTMLInputElement>(null);
   const stateRef = useRef<HTMLInputElement>(null);
@@ -118,15 +128,15 @@ export function RequestAddressFields({ apiKey }: { apiKey?: string | null }) {
   return (
     <div className="grid gap-4">
       <Field label="Address line 1" hint={apiKey ? "Start typing and select your address to check the service area." : "Address autocomplete is available after the Google Maps browser key is configured."}>
-        <Input ref={addressRef} name="addressLine1" required autoComplete="street-address" />
+        <Input ref={addressRef} name="addressLine1" required autoComplete="street-address" defaultValue={defaults?.addressLine1 ?? ""} />
       </Field>
-      <input ref={latRef} type="hidden" name="latitude" />
-      <input ref={lngRef} type="hidden" name="longitude" />
+      <input ref={latRef} type="hidden" name="latitude" defaultValue={defaults?.latitude ?? ""} />
+      <input ref={lngRef} type="hidden" name="longitude" defaultValue={defaults?.longitude ?? ""} />
       <div className="grid gap-4 md:grid-cols-[1fr_1fr_90px_120px]">
-        <Field label="Address line 2"><Input name="addressLine2" autoComplete="address-line2" /></Field>
-        <Field label="City"><Input ref={cityRef} name="city" required autoComplete="address-level2" onBlur={(event) => void checkArea(null, null, event.currentTarget.value, zipRef.current?.value)} /></Field>
-        <Field label="State"><Input ref={stateRef} name="state" maxLength={2} required autoComplete="address-level1" /></Field>
-        <Field label="ZIP"><Input ref={zipRef} name="zip" required autoComplete="postal-code" onBlur={(event) => void checkArea(null, null, cityRef.current?.value, event.currentTarget.value)} /></Field>
+        <Field label="Address line 2"><Input name="addressLine2" autoComplete="address-line2" defaultValue={defaults?.addressLine2 ?? ""} /></Field>
+        <Field label="City"><Input ref={cityRef} name="city" required autoComplete="address-level2" defaultValue={defaults?.city ?? ""} onBlur={(event) => void checkArea(null, null, event.currentTarget.value, zipRef.current?.value)} /></Field>
+        <Field label="State"><Input ref={stateRef} name="state" maxLength={2} required autoComplete="address-level1" defaultValue={defaults?.state ?? ""} /></Field>
+        <Field label="ZIP"><Input ref={zipRef} name="zip" required autoComplete="postal-code" defaultValue={defaults?.zip ?? ""} onBlur={(event) => void checkArea(null, null, cityRef.current?.value, event.currentTarget.value)} /></Field>
       </div>
       {loading ? <div className="rounded-lg bg-[var(--muted)] p-3 text-sm text-[var(--muted-foreground)]">Checking service area…</div> : null}
       {result ? <div className={`rounded-lg p-3 text-sm font-medium ${result.inside ? "tone-success text-[var(--success)]" : "tone-warning text-[var(--warning)]"}`}>{result.message}</div> : null}

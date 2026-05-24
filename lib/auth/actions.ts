@@ -45,6 +45,18 @@ export async function signUpWithPassword(formData: FormData) {
   redirect("/auth/login?message=Check your email to confirm your account, then log in.");
 }
 
+export async function updatePassword(formData: FormData) {
+  const password = String(formData.get("password") ?? "");
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
+  if (password.length < 8) redirect("/auth/update-password?error=Password must be at least 8 characters.");
+  if (password !== confirmPassword) redirect("/auth/update-password?error=Passwords do not match.");
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) redirect(`/auth/update-password?error=${encodeURIComponent(error.message)}`);
+  redirect("/auth/login?message=Password updated. Please log in with your new password.");
+}
+
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();

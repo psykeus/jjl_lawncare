@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Field, Input, Textarea } from "@/components/ui/input";
 import { servicePriceLabel } from "@/lib/services/display";
 import { submitQuoteRequest } from "./actions";
-import { RequestAddressFields } from "./request-address-fields";
+import { RequestAddressFields, type RequestAddressDefaults } from "./request-address-fields";
 
 export type WizardServiceOption = {
   id: string;
@@ -56,6 +56,14 @@ export type WizardService = {
 type AnswerState = Record<string, string | string[]>;
 type NotesState = Record<string, string>;
 
+export type RequestCustomerDefaults = RequestAddressDefaults & {
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  gateAccess?: string | null;
+  yardSize?: string | null;
+};
+
 const stepLabels = ["Address", "Services", "Details", "Contact"];
 const maxPhotoBytes = 20 * 1024 * 1024;
 const maxTotalPhotoBytes = 35 * 1024 * 1024;
@@ -72,9 +80,10 @@ function toArray(value: string | string[] | undefined) {
   return Array.isArray(value) ? value : [value];
 }
 
-export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }: { services: WizardService[]; initialServiceId?: string; apiKey?: string | null; error?: string }) {
+export function RequestQuoteWizard({ services, initialServiceId, apiKey, error, customerDefaults }: { services: WizardService[]; initialServiceId?: string; apiKey?: string | null; error?: string; customerDefaults?: RequestCustomerDefaults | null }) {
   const initialSelection = initialServiceId && services.some((service) => service.id === initialServiceId) ? [initialServiceId] : [];
-  const [step, setStep] = useState(initialSelection.length ? 1 : 0);
+  const hasSavedRequestInfo = Boolean(customerDefaults?.addressLine1 && customerDefaults?.email);
+  const [step, setStep] = useState(initialSelection.length || hasSavedRequestInfo ? 1 : 0);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(initialSelection);
   const [answers, setAnswers] = useState<AnswerState>({});
   const [notes, setNotes] = useState<NotesState>({});
@@ -230,7 +239,8 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
             <h2 className="text-2xl font-black">Where is the work?</h2>
             <p className="mt-2 text-sm text-[var(--muted-foreground)]">Start with the property address so we can check the service area before you spend time adding details.</p>
           </div>
-          <RequestAddressFields apiKey={apiKey} />
+          {hasSavedRequestInfo ? <div className="rounded-2xl bg-[var(--muted)] p-4 text-sm text-[var(--muted-foreground)]"><strong className="text-[var(--foreground)]">Saved property loaded.</strong> We prefilled your existing account and property information. You can edit it if this request is for a different property.</div> : null}
+          <RequestAddressFields apiKey={apiKey} defaults={customerDefaults} />
           <div className="flex justify-end"><Button type="button" onClick={() => setStep(1)}>Next: choose services</Button></div>
         </Card>
 
@@ -307,9 +317,9 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
             <p className="mt-2 text-sm text-[var(--muted-foreground)]">No account is required to submit this request. If you already have one, you can also <Link href="/auth/login" className="font-semibold text-[var(--primary)]">log in</Link>.</p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Name"><Input name="name" required autoComplete="name" /></Field>
-            <Field label="Email"><Input name="email" type="email" required autoComplete="email" /></Field>
-            <Field label="Phone"><Input name="phone" required autoComplete="tel" /></Field>
+            <Field label="Name"><Input name="name" required autoComplete="name" defaultValue={customerDefaults?.name ?? ""} /></Field>
+            <Field label="Email"><Input name="email" type="email" required autoComplete="email" defaultValue={customerDefaults?.email ?? ""} /></Field>
+            <Field label="Phone"><Input name="phone" required autoComplete="tel" defaultValue={customerDefaults?.phone ?? ""} /></Field>
             <Field label="Preferred dates/window"><Input name="preferredDates" placeholder="Example: next Saturday morning" /></Field>
           </div>
           <div className="grid gap-3 rounded-xl border border-[var(--border)] p-4 text-sm">
@@ -318,11 +328,11 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
             <label><input className="mr-2" type="checkbox" name="dogWastePresent" /> Dog waste present</label>
             <label><input className="mr-2" type="checkbox" name="petsPresent" /> Pets on property</label>
           </div>
-          <Field label="Gate/access notes"><Textarea name="gateAccess" /></Field>
+          <Field label="Gate/access notes"><Textarea name="gateAccess" defaultValue={customerDefaults?.gateAccess ?? ""} /></Field>
           <Field label="Anything else we should know?"><Textarea name="customerNotes" /></Field>
           <div className="grid gap-3 rounded-xl bg-[var(--muted)] p-4 text-sm">
             <label><input className="mr-2" type="checkbox" name="termsAccepted" required /> I accept the quote request terms and understand unsafe/out-of-scope jobs may be declined.</label>
-            <Field label="Type your name to accept terms"><Input name="acceptedName" required /></Field>
+            <Field label="Type your name to accept terms"><Input name="acceptedName" required defaultValue={customerDefaults?.name ?? ""} /></Field>
           </div>
           <div className="flex flex-wrap justify-between gap-2">
             <Button type="button" variant="outline" onClick={() => setStep(2)}>Back</Button>
