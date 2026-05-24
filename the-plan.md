@@ -1351,3 +1351,11 @@ avery.thompson@review.jjllawn.local
 ```
 
 The online Supabase project was populated with this review dataset after adding the script.
+
+## Admin account archive/delete controls
+
+Admins can now archive or delete accounts from `/admin/users`:
+
+* Archive blocks sign-in, marks the profile inactive, applies a Supabase Auth ban duration, and archives linked customer rows while preserving audit/history records.
+* Delete requires typing `DELETE` and only succeeds when the profile has no blocking audit/payment/media/approval/settings references. Linked customer rows are archived and detached from the deleted profile. If references exist, the UI directs admins to archive instead.
+* Admins cannot archive, ban, demote, or delete their own admin account.

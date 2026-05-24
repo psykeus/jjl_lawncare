@@ -4,7 +4,7 @@ import { Field, Input, Select } from "@/components/ui/input";
 import { StatusBadge } from "@/components/status/status-badge";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDate } from "@/lib/utils";
-import { createPlatformUser, updateUserAccess } from "./actions";
+import { archiveUserAccount, createPlatformUser, deleteUserAccount, updateUserAccess } from "./actions";
 
 type ProfileRow = {
   id: string;
@@ -29,7 +29,7 @@ function roleLabel(role: string) {
   return "Customer";
 }
 
-export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string }> }) {
+export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string; archived?: string; deleted?: string }> }) {
   const params = await searchParams;
   const supabase = createAdminClient();
   const [{ data: profiles }, { data: customers }, { data: jobs }, { data: activities }, authUsersResult] = await Promise.all([
@@ -78,6 +78,8 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
         <p className="mt-2 text-[var(--muted-foreground)]">Create users, promote/demote roles, ban accounts, and monitor account activity.</p>
         {params.error ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
         {params.saved ? <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-green-700">User access saved.</div> : null}
+        {params.archived ? <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-green-700">Account archived and sign-in access blocked.</div> : null}
+        {params.deleted ? <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-green-700">Account deleted. Linked customer records, if any, were archived and detached.</div> : null}
       </div>
 
       <div className="grid gap-4 md:grid-cols-6">
@@ -109,7 +111,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
 
       <Card className="overflow-x-auto p-0">
         <table className="w-full min-w-[1100px] text-left text-sm">
-          <thead className="bg-[var(--muted)]"><tr><th className="p-3">User</th><th className="p-3">Role/access</th><th className="p-3">Analytics</th><th className="p-3">Last sign-in/activity</th><th className="p-3">Update access</th></tr></thead>
+          <thead className="bg-[var(--muted)]"><tr><th className="p-3">User</th><th className="p-3">Role/access</th><th className="p-3">Analytics</th><th className="p-3">Last sign-in/activity</th><th className="p-3">Update access</th><th className="p-3">Archive/delete</th></tr></thead>
           <tbody>
             {rows.map((profile) => {
               const auth = authById.get(profile.auth_user_id);
@@ -131,10 +133,27 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                       <Button type="submit" size="sm" variant={banned ? "primary" : "outline"}>{banned ? "Save / unban" : "Save access"}</Button>
                     </form>
                   </td>
+                  <td className="p-3">
+                    <div className="grid gap-3">
+                      <form action={archiveUserAccount} className="grid gap-2 rounded-lg border border-[var(--border)] p-2">
+                        <input type="hidden" name="profileId" value={profile.id} />
+                        <input type="hidden" name="authUserId" value={profile.auth_user_id} />
+                        <p className="text-xs text-[var(--muted-foreground)]">Archive keeps records but blocks sign-in and archives linked customer rows.</p>
+                        <Button type="submit" size="sm" variant="outline" disabled={banned}>Archive account</Button>
+                      </form>
+                      <form action={deleteUserAccount} className="grid gap-2 rounded-lg border border-red-200 bg-red-50 p-2">
+                        <input type="hidden" name="profileId" value={profile.id} />
+                        <input type="hidden" name="authUserId" value={profile.auth_user_id} />
+                        <p className="text-xs text-[var(--danger)]">Deletes only accounts without audit/payment/media references. Otherwise archive.</p>
+                        <Input name="confirmDelete" placeholder="Type DELETE" aria-label="Type DELETE to confirm" />
+                        <Button type="submit" size="sm" variant="danger">Delete account</Button>
+                      </form>
+                    </div>
+                  </td>
                 </tr>
               );
             })}
-            {rows.length ? null : <tr><td className="p-3 text-[var(--muted-foreground)]" colSpan={5}>No users found.</td></tr>}
+            {rows.length ? null : <tr><td className="p-3 text-[var(--muted-foreground)]" colSpan={6}>No users found.</td></tr>}
           </tbody>
         </table>
       </Card>

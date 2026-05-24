@@ -100,7 +100,7 @@ The MVP foundation and the first expansion pass are in place:
 - Editable admin services/pricing/homepage/workload forms
 - Admin service question and targeted upsell managers
 - Editable admin settings forms
-- Admin user management for creating users, changing roles/access rights, banning/unbanning accounts, and viewing user activity analytics
+- Admin user management for creating users, changing roles/access rights, banning/unbanning accounts, archiving accounts, deleting unreferenced accounts, and viewing user activity analytics
 - Draft estimate builder with line items and totals
 - Quote-request service answers/photos shown in admin request detail
 - Customer estimate list/detail pages

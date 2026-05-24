@@ -29,6 +29,11 @@ const updateAccessSchema = z.object({
   active: checkbox.default(false),
 });
 
+const accountActionSchema = z.object({
+  profileId: z.string().uuid(),
+  authUserId: z.string().uuid(),
+});
+
 async function findAuthUserByEmail(email: string) {
   const supabase = createAdminClient();
   let page = 1;
@@ -46,6 +51,19 @@ async function setAuthBan(authUserId: string, active: boolean) {
   const supabase = createAdminClient();
   const attributes = { ban_duration: active ? "none" : "876000h" } as unknown as Parameters<typeof supabase.auth.admin.updateUserById>[1];
   await supabase.auth.admin.updateUserById(authUserId, attributes);
+}
+
+async function profileHasBlockingReferences(profileId: string) {
+  const supabase = createAdminClient();
+  const checks = await Promise.all([
+    supabase.from("activity_log").select("id", { count: "exact", head: true }).eq("actor_id", profileId),
+    supabase.from("quote_requests").select("id", { count: "exact", head: true }).eq("parent_approved_by", profileId),
+    supabase.from("payments").select("id", { count: "exact", head: true }).eq("confirmed_by", profileId),
+    supabase.from("expenses").select("id", { count: "exact", head: true }).eq("paid_by", profileId),
+    supabase.from("media_files").select("id", { count: "exact", head: true }).eq("uploaded_by", profileId),
+    supabase.from("settings").select("id", { count: "exact", head: true }).eq("updated_by", profileId),
+  ]);
+  return checks.reduce((total, result) => total + (result.count ?? 0), 0);
 }
 
 export async function createPlatformUser(formData: FormData) {
@@ -110,4 +128,46 @@ export async function updateUserAccess(formData: FormData) {
   revalidatePath("/admin/users");
   revalidatePath("/admin/dashboard");
   redirect("/admin/users?saved=1");
+}
+
+export async function archiveUserAccount(formData: FormData) {
+  const actor = await requireRole(["admin"]);
+  const parsed = accountActionSchema.safeParse({ profileId: formData.get("profileId"), authUserId: formData.get("authUserId") });
+  if (!parsed.success) redirect("/admin/users?error=Invalid account archive request");
+  const { profileId, authUserId } = parsed.data;
+  if (actor.id === profileId) redirect("/admin/users?error=You cannot archive or ban your own admin account.");
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("profiles").update({ active: false }).eq("id", profileId);
+  if (error) redirect(`/admin/users?error=${encodeURIComponent(error.message)}`);
+  await supabase.from("customers").update({ status: "archived" }).eq("profile_id", profileId);
+  await setAuthBan(authUserId, false);
+  await supabase.from("activity_log").insert({ actor_id: actor.id, action: "user_archived", related_type: "profile", related_id: profileId, metadata_json: { archivedCustomerRecords: true } });
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/customers");
+  revalidatePath("/admin/dashboard");
+  redirect("/admin/users?archived=1");
+}
+
+export async function deleteUserAccount(formData: FormData) {
+  const actor = await requireRole(["admin"]);
+  const parsed = accountActionSchema.safeParse({ profileId: formData.get("profileId"), authUserId: formData.get("authUserId") });
+  if (!parsed.success) redirect("/admin/users?error=Invalid account delete request");
+  const { profileId, authUserId } = parsed.data;
+  if (String(formData.get("confirmDelete") ?? "") !== "DELETE") redirect("/admin/users?error=Type DELETE to confirm permanent account deletion.");
+  if (actor.id === profileId) redirect("/admin/users?error=You cannot delete your own admin account.");
+  const supabase = createAdminClient();
+  const blockingCount = await profileHasBlockingReferences(profileId);
+  if (blockingCount > 0) {
+    redirect(`/admin/users?error=${encodeURIComponent(`This account has ${blockingCount} linked activity/payment/media/approval record(s). Archive it instead to preserve audit history.`)}`);
+  }
+  await supabase.from("activity_log").insert({ actor_id: actor.id, action: "user_deleted", related_type: "profile", related_id: profileId, metadata_json: { authUserId } });
+  await supabase.from("customers").update({ profile_id: null, status: "archived" }).eq("profile_id", profileId);
+  await supabase.from("crew_availability").delete().eq("profile_id", profileId);
+  const { error: authError } = await supabase.auth.admin.deleteUser(authUserId);
+  if (authError) redirect(`/admin/users?error=${encodeURIComponent(authError.message)}`);
+  await supabase.from("profiles").delete().eq("id", profileId);
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/customers");
+  revalidatePath("/admin/dashboard");
+  redirect("/admin/users?deleted=1");
 }

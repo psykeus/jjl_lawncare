@@ -45,7 +45,7 @@
 ## Authentication and roles
 
 - Full admin command center dashboard with grouped links for all admin tasks, operational metrics, recent queues, revenue/balance summaries, and user/access analytics
-- Admin user management at `/admin/users` for creating login users, changing role/access rights, banning/unbanning via profile active state and Supabase Auth ban duration, and viewing sign-in/activity/job/customer analytics
+- Admin user management at `/admin/users` for creating login users, changing role/access rights, banning/unbanning via profile active state and Supabase Auth ban duration, archiving accounts, deleting unreferenced accounts, and viewing sign-in/activity/job/customer analytics
 - Live customer dashboard with recent requests, estimates, invoices, and jobs
 - Customer request list/detail backed by live quote request data, selected services, answers, and private photo previews
 - Customer property list backed by live property data
