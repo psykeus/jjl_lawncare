@@ -3,9 +3,14 @@
 ## Public site
 
 - Homepage, services, pricing, service area, contact, and terms pages
+- Homepage popular-service cards are driven by the admin service catalog
+- Services page groups admin-managed services into core services, add-ons/upsells, case-by-case work, and exclusions
+- Pricing page reads public pricing/ranges from admin-managed services
 - Public quote request form
 - Required customer/property information
-- Service selection
+- Google Places address autocomplete when a browser Maps key is configured
+- Service-area check before quote submission
+- Service selection with support for preselecting a service from public service cards/pricing links
 - Yard condition details
 - Preferred dates
 - Customer notes
@@ -19,6 +24,7 @@
   - Private uploaded quote photos
   - Activity log entry
 - Address geocoding via Google Maps Geocoding API when configured
+- In-area requests are accepted; outside-area requests are blocked with the configured outside-area message
 
 ## Authentication and roles
 
@@ -67,7 +73,7 @@
 - Private quote photo previews via signed URLs
 - Create estimate from quote request
 
-## Services and pricing
+## Services, pricing, and service intake questions
 
 - Admin services list
 - Create/edit/deactivate services
@@ -80,6 +86,23 @@
   - Customer visibility
   - Parent approval/photo/site-review flags
   - Recurring capability
+- Public homepage/services/pricing pages are tied to the admin service catalog
+- Admin service-question manager at `/admin/services/[id]/questions`
+- Add/edit/deactivate service-specific intake questions
+- Supported question types:
+  - Single-choice buttons
+  - Multi-choice buttons
+  - Yes/no
+  - Short text
+  - Number
+- Add/edit/deactivate button-answer options per question
+- Service answer options can carry:
+  - Price modifier
+  - Duration/workload minute modifier
+  - Risk modifier
+  - Parent/admin approval flag
+  - Sort order and active/inactive status
+- Database support for normalized quote-request services, answers, and per-service photo linking
 
 ## Estimate workflow
 
@@ -137,7 +160,13 @@
 
 - Internal admin job map
 - Google Maps embedded map support
-- Job pins by status
+- Job pins grouped and color-coded by operational bucket:
+  - Current jobs
+  - Queue/upcoming jobs
+  - Past jobs
+- Filter controls for all/current/queue/past jobs
+- Map jobs are filtered to the managed service area / Greater Cincinnati planning area
+- Admin warning when jobs are outside the planning area and hidden from the routing map
 - Scheduled route ordering
 - Selected job detail panel
 - Requested work attached to each map job
@@ -180,6 +209,22 @@
   - Distributable profit
   - Estimated equal crew payout split
 
+## Service-area management
+
+- Admin service-area manager at `/admin/service-areas`
+- Supports service-area records by:
+  - Map bounds
+  - City allowlist
+  - ZIP allowlist
+  - Radius
+  - Polygon/manual fallback metadata
+- Default Greater Cincinnati planning area migration
+- Configurable cities, ZIP codes, bounds, radius center, and outside-area message
+- Service areas can be active/inactive and accepting requests/internal-only
+- Public `/service-area` page lists active configured service areas
+- API endpoint `/api/service-area/check` for request-form and planning checks
+- Fallback Greater Cincinnati bounds/city checks if the database table is not yet applied
+
 ## Settings
 
 - Business/public settings
@@ -211,6 +256,9 @@
 - Supabase schema migrations
 - RLS policies
 - Seed data
+- Service-area schema and policies
+- Service-question/options schema and policies
+- Quote-request service/answer/photo-link schema and policies
 - Private storage buckets:
   - quote-photos
   - job-photos
@@ -218,7 +266,7 @@
   - payment-proofs
   - settings-assets
 - Scoped storage policies
-- Combined `db/setup.sql` for dashboard SQL setup
+- Combined `db/setup.sql` for dashboard SQL setup, now including service-area and service-question migrations
 
 ## Demo data/accounts
 
