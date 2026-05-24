@@ -36,6 +36,17 @@ Apply migrations in order to a Supabase project, or paste/run `db/setup.sql` onc
 
 The storage migration creates private Supabase Storage buckets for quote photos, job photos, receipts, payment proofs, and settings assets. Later migrations add managed service areas, service-specific intake questions, targeted upsells, service workload defaults, crew availability, route/schedule planning fields, and tighter expense RLS.
 
+## Validation and QA
+
+```bash
+npm run typecheck
+npm run lint
+npm run build
+npm run qa:rls
+```
+
+`qa:rls` loads `.env.local`, signs in with the seeded demo accounts, and checks representative public/customer/crew/admin RLS boundaries. Override demo credentials with the optional `DEMO_*` variables in `.env.local` if you rotate the seed accounts.
+
 ## Admin bootstrap
 
 After creating your first user, promote them in Supabase SQL editor:
@@ -79,4 +90,4 @@ The MVP foundation and the first expansion pass are in place:
 - Terms version CRUD with public active terms page
 - Private Supabase Storage bucket/policy migration
 
-Recommended next development pass: add automated end-to-end tests for the quote wizard/admin scheduling flow and optionally integrate live Google Route Matrix travel-time estimates.
+Recommended next development pass: add automated end-to-end browser tests for the quote wizard/admin scheduling flow and optionally deepen route optimization beyond the current deterministic planner with optional Google travel-time estimates.

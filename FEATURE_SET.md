@@ -331,6 +331,13 @@
 - Scoped storage policies
 - Combined `db/setup.sql` for dashboard SQL setup, now including service-area and service-question migrations
 
+## Validation and QA
+
+- `npm run typecheck`
+- `npm run lint`
+- `npm run build`
+- `npm run qa:rls` signs in with seeded demo users and verifies representative public, customer, crew, and admin RLS boundaries
+
 ## Demo data/accounts
 
 Seeded demo roles:
