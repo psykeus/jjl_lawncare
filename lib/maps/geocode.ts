@@ -1,5 +1,7 @@
+import { getGoogleMapsServerKey } from "./config";
+
 export async function geocodeAddress(address: string): Promise<{ latitude: number; longitude: number } | null> {
-  const key = process.env.GOOGLE_MAPS_SERVER_API_KEY;
+  const key = getGoogleMapsServerKey();
   if (!key) return null;
 
   const params = new URLSearchParams({ address, key });

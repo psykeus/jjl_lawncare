@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { getGoogleMapsBrowserKey } from "@/lib/maps/config";
 import { createClient } from "@/lib/supabase/server";
 import { AdminJobMap, type AdminMapJob } from "./admin-job-map";
 import { geocodeUnmappedProperties } from "./actions";
@@ -88,7 +89,7 @@ export default async function AdminMapPage({ searchParams }: { searchParams: Pro
   });
 
   const unmappedCount = mapJobs.filter((job) => !job.latitude || !job.longitude).length;
-  const googleMapsBrowserKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY;
+  const googleMapsBrowserKey = getGoogleMapsBrowserKey();
 
   return (
     <div className="space-y-6">
@@ -106,7 +107,7 @@ export default async function AdminMapPage({ searchParams }: { searchParams: Pro
           </div>
         </Card>
       ) : null}
-      <AdminJobMap jobs={mapJobs} apiKey={googleMapsBrowserKey} />
+      <AdminJobMap jobs={mapJobs} apiKey={googleMapsBrowserKey ?? undefined} />
     </div>
   );
 }
