@@ -60,17 +60,22 @@ function loadGoogleMaps(apiKey: string) {
 
   window.__jjlMapsPromise = new Promise((resolve, reject) => {
     const callbackName = `initJjlMaps${Date.now()}`;
+    const timeout = window.setTimeout(() => reject(new Error("Google Maps timed out. Check the Maps JavaScript API, billing, and key restrictions.")), 12_000);
     (window as any)[callbackName] = () => {
+      window.clearTimeout(timeout);
       delete (window as any)[callbackName];
-      if (window.google) resolve(window.google);
-      else reject(new Error("Google Maps failed to load."));
+      if (window.google?.maps) resolve(window.google);
+      else reject(new Error("Google Maps loaded but the Maps library was unavailable."));
     };
 
     const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&callback=${callbackName}`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&v=weekly&loading=async&callback=${callbackName}`;
     script.async = true;
     script.defer = true;
-    script.onerror = () => reject(new Error("Google Maps script failed."));
+    script.onerror = () => {
+      window.clearTimeout(timeout);
+      reject(new Error("Google Maps script failed. Check that the Maps JavaScript API is enabled for this key."));
+    };
     document.head.appendChild(script);
   });
 
@@ -118,6 +123,7 @@ export function AdminJobMap({ jobs, apiKey }: { jobs: AdminMapJob[]; apiKey?: st
     loadGoogleMaps(apiKey)
       .then((googleMaps) => {
         if (cancelled || !mapRef.current) return;
+        setMapError(null);
         const center = { lat: Number(routableJobs[0].latitude), lng: Number(routableJobs[0].longitude) };
         const map = new googleMaps.maps.Map(mapRef.current, {
           center,
@@ -156,8 +162,12 @@ export function AdminJobMap({ jobs, apiKey }: { jobs: AdminMapJob[]; apiKey?: st
           });
         });
         if (routableJobs.length > 1) map.fitBounds(bounds, 64);
+        else map.setZoom(15);
       })
-      .catch((error: Error) => setMapError(error.message));
+      .catch((error: Error) => {
+        window.__jjlMapsPromise = undefined;
+        setMapError(error.message);
+      });
 
     return () => {
       cancelled = true;
@@ -190,7 +200,7 @@ export function AdminJobMap({ jobs, apiKey }: { jobs: AdminMapJob[]; apiKey?: st
           <div ref={mapRef} className="h-[640px] w-full rounded-2xl" />
         ) : (
           <div className="flex h-[480px] items-center justify-center rounded-2xl bg-[var(--muted)] p-8 text-center text-sm text-[var(--muted-foreground)]">
-            {routableJobs.length ? "Add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to enable the embedded map." : "No jobs have latitude/longitude yet. Geocoding runs when addresses are created."}
+            {routableJobs.length ? "Add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY or NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY with Maps JavaScript API enabled to show the embedded map." : "No jobs have latitude/longitude yet. Use Geocode missing after configuring the Google Geocoding API key."}
           </div>
         )}
       </Card>

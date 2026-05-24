@@ -1,6 +1,8 @@
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { AdminJobMap, type AdminMapJob } from "./admin-job-map";
+import { geocodeUnmappedProperties } from "./actions";
 
 type RelatedRow<T> = T | T[] | null;
 function one<T>(value: RelatedRow<T>): T | null { return Array.isArray(value) ? (value[0] ?? null) : value; }
@@ -25,7 +27,8 @@ type QuoteRequestRow = {
   services: RelatedRow<{ name: string | null }>;
 };
 
-export default async function AdminMapPage() {
+export default async function AdminMapPage({ searchParams }: { searchParams: Promise<{ error?: string; geocoded?: string }> }) {
+  const params = await searchParams;
   const supabase = await createClient();
   const { data: jobs } = await supabase
     .from("jobs")
@@ -85,6 +88,7 @@ export default async function AdminMapPage() {
   });
 
   const unmappedCount = mapJobs.filter((job) => !job.latitude || !job.longitude).length;
+  const googleMapsBrowserKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY;
 
   return (
     <div className="space-y-6">
@@ -92,8 +96,17 @@ export default async function AdminMapPage() {
         <h1 className="text-3xl font-black">Internal job map</h1>
         <p className="mt-2 text-[var(--muted-foreground)]">Admin-only routing board showing each job, requested work, quote photos, and scheduled route pins.</p>
       </div>
-      {unmappedCount ? <Card className="border-yellow-200 bg-yellow-50 text-sm text-yellow-900">{unmappedCount} job(s) are missing coordinates. Edit or recreate the property after configuring the Google Geocoding API key.</Card> : null}
-      <AdminJobMap jobs={mapJobs} apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY} />
+      {params.error ? <Card className="border-red-200 bg-red-50 text-sm text-[var(--danger)]">{params.error}</Card> : null}
+      {params.geocoded ? <Card className="border-green-200 bg-green-50 text-sm text-[var(--success)]">Geocoded {params.geocoded} propert{params.geocoded === "1" ? "y" : "ies"}.</Card> : null}
+      {unmappedCount ? (
+        <Card className="border-yellow-200 bg-yellow-50 text-sm text-yellow-900">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>{unmappedCount} job(s) are missing coordinates. Run geocoding after adding or changing the Google Geocoding API key.</span>
+            <form action={geocodeUnmappedProperties}><Button type="submit" variant="outline" size="sm">Geocode missing</Button></form>
+          </div>
+        </Card>
+      ) : null}
+      <AdminJobMap jobs={mapJobs} apiKey={googleMapsBrowserKey} />
     </div>
   );
 }
