@@ -42,17 +42,23 @@ declare global {
   }
 }
 
-const statusColors: Record<string, string> = {
-  accepted: "#2563eb",
-  scheduled: "#16a34a",
-  on_hold: "#f59e0b",
-  on_the_way: "#7c3aed",
-  in_progress: "#ea580c",
-  completed: "#0891b2",
-  completed_unpaid: "#dc2626",
-  paid: "#15803d",
-  cancelled: "#64748b",
+type JobGroup = "current" | "queue" | "past";
+
+const groupColors: Record<JobGroup, string> = {
+  current: "#16a34a",
+  queue: "#2563eb",
+  past: "#64748b",
 };
+
+function getJobGroup(job: Pick<AdminMapJob, "status" | "scheduledDate">): JobGroup {
+  const today = new Date().toISOString().slice(0, 10);
+  if (["completed", "completed_unpaid", "paid", "cancelled"].includes(job.status)) return "past";
+  if (["on_the_way", "in_progress"].includes(job.status)) return "current";
+  if (job.status === "scheduled" && job.scheduledDate === today) return "current";
+  return "queue";
+}
+
+const filterLabels: Array<["all" | JobGroup, string]> = [["all", "All"], ["current", "Current"], ["queue", "Queue"], ["past", "Past"]];
 
 function loadGoogleMaps(apiKey: string) {
   if (window.google?.maps) return Promise.resolve(window.google);
@@ -109,12 +115,22 @@ export function AdminJobMap({ jobs, apiKey }: { jobs: AdminMapJob[]; apiKey?: st
   const directionsRendererRef = useRef<GoogleMapsRuntime | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(jobs[0]?.id ?? null);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<"all" | JobGroup>("all");
 
-  const routableJobs = useMemo(
-    () => jobs.filter((job) => job.latitude && job.longitude).sort((a, b) => `${a.scheduledDate ?? "9999"} ${a.scheduledStartTime ?? ""}`.localeCompare(`${b.scheduledDate ?? "9999"} ${b.scheduledStartTime ?? ""}`)),
-    [jobs],
+  const visibleJobs = useMemo(
+    () => jobs.filter((job) => filter === "all" || getJobGroup(job) === filter),
+    [filter, jobs],
   );
-  const selectedJob = jobs.find((job) => job.id === selectedJobId) ?? jobs[0] ?? null;
+  const routableJobs = useMemo(
+    () => visibleJobs.filter((job) => job.latitude && job.longitude).sort((a, b) => `${a.scheduledDate ?? "9999"} ${a.scheduledStartTime ?? ""}`.localeCompare(`${b.scheduledDate ?? "9999"} ${b.scheduledStartTime ?? ""}`)),
+    [visibleJobs],
+  );
+  const selectedJob = visibleJobs.find((job) => job.id === selectedJobId) ?? visibleJobs[0] ?? null;
+  const groupCounts = useMemo(() => ({
+    current: jobs.filter((job) => getJobGroup(job) === "current").length,
+    queue: jobs.filter((job) => getJobGroup(job) === "queue").length,
+    past: jobs.filter((job) => getJobGroup(job) === "past").length,
+  }), [jobs]);
 
   useEffect(() => {
     if (!apiKey || !mapRef.current || !routableJobs.length) return;
@@ -149,7 +165,7 @@ export function AdminJobMap({ jobs, apiKey }: { jobs: AdminMapJob[]; apiKey?: st
             icon: {
               path: googleMaps.maps.SymbolPath.CIRCLE,
               scale: 12,
-              fillColor: statusColors[job.status] ?? "#2563eb",
+              fillColor: groupColors[getJobGroup(job)],
               fillOpacity: 1,
               strokeColor: "#ffffff",
               strokeWeight: 2,
@@ -208,6 +224,18 @@ export function AdminJobMap({ jobs, apiKey }: { jobs: AdminMapJob[]; apiKey?: st
       <div className="space-y-4">
         <Card>
           <h2 className="text-xl font-bold">Route planning</h2>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {filterLabels.map(([value, label]) => (
+              <button key={value} type="button" onClick={() => setFilter(value)} className={`rounded-full border px-3 py-1 text-sm font-semibold ${filter === value ? "border-[var(--primary)] bg-[var(--primary)] text-white" : "border-[var(--border)] bg-white text-[var(--muted-foreground)]"}`}>
+                {label}{value !== "all" ? ` (${groupCounts[value]})` : ` (${jobs.length})`}
+              </button>
+            ))}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-3 text-xs text-[var(--muted-foreground)]">
+            <span><span className="mr-1 inline-block h-3 w-3 rounded-full" style={{ background: groupColors.current }} /> Current</span>
+            <span><span className="mr-1 inline-block h-3 w-3 rounded-full" style={{ background: groupColors.queue }} /> Queue</span>
+            <span><span className="mr-1 inline-block h-3 w-3 rounded-full" style={{ background: groupColors.past }} /> Past</span>
+          </div>
           <p className="mt-2 text-sm text-[var(--muted-foreground)]">Pins are ordered by scheduled date/time. Build an optimized route for up to the first 10 mapped jobs, or open all stops in Google Maps.</p>
           {mapError ? <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-[var(--danger)]">{mapError}</div> : null}
           <div className="mt-4 flex flex-wrap gap-2">

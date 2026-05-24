@@ -1,8 +1,27 @@
 import { Card } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { createClient } from "@/lib/supabase/server";
+import { requestServiceHref, servicePriceLabel, type PublicService } from "@/lib/services/display";
 
-export default function HomePage() {
+async function getHomepageServices() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("services")
+    .select("id, name, public_description, service_type, pricing_type, base_price, min_price, max_price, unit_label, customer_visible_range, sort_order")
+    .eq("active", true)
+    .eq("visible_to_customer", true)
+    .neq("service_type", "excluded")
+    .order("sort_order")
+    .limit(6);
+  return (data ?? []) as PublicService[];
+}
+
+export default async function HomePage() {
+  const services = await getHomepageServices();
+  const coreServices = services.filter((service) => service.service_type === "core").slice(0, 4);
+  const handled = services.length ? services.slice(0, 5).map((service) => service.name) : ["Lawn mowing, trimming, and blowing clippings", "Flower bed and seasonal yard cleanup", "Stick pickup and light debris bagging", "Mulch spreading and walkway sweeping", "Clear exclusions for unsafe work"];
+
   return (
     <>
       <section className="container-page grid gap-8 py-16 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
@@ -22,15 +41,36 @@ export default function HomePage() {
         <Card className="space-y-4">
           <h2 className="text-2xl font-bold">What we handle</h2>
           <ul className="grid gap-3 text-sm text-[var(--muted-foreground)]">
-            <li>✓ Lawn mowing, trimming, and blowing clippings</li>
-            <li>✓ Flower bed and seasonal yard cleanup</li>
-            <li>✓ Stick pickup and light debris bagging</li>
-            <li>✓ Mulch spreading and walkway sweeping</li>
-            <li>✓ Clear exclusions for unsafe work</li>
+            {handled.map((item) => <li key={item}>✓ {item}</li>)}
           </ul>
         </Card>
       </section>
-      <section className="bg-white py-12">
+
+      {coreServices.length ? (
+        <section className="bg-white py-12">
+          <div className="container-page space-y-6">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h2 className="text-3xl font-black">Popular services</h2>
+                <p className="mt-2 text-[var(--muted-foreground)]">These public service cards are pulled from the admin-managed service catalog.</p>
+              </div>
+              <ButtonLink href="/services" variant="outline">All services</ButtonLink>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {coreServices.map((service) => (
+                <Card key={service.id}>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-[var(--primary)]">{servicePriceLabel(service)}</div>
+                  <h3 className="mt-2 text-lg font-bold">{service.name}</h3>
+                  <p className="mt-2 text-sm text-[var(--muted-foreground)]">{service.public_description ?? "Final pricing depends on yard size, access, photos, and site conditions."}</p>
+                  <ButtonLink className="mt-4" href={requestServiceHref(service.id)} size="sm">Request this</ButtonLink>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="py-12">
         <div className="container-page grid gap-4 md:grid-cols-3">
           {["Request", "Approve", "Schedule"].map((title, index) => (
             <Card key={title}>

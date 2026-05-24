@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getGoogleMapsBrowserKey } from "@/lib/maps/config";
+import { isInGreaterCincinnati } from "@/lib/service-area/greater-cincinnati";
 import { createClient } from "@/lib/supabase/server";
 import { AdminJobMap, type AdminMapJob } from "./admin-job-map";
 import { geocodeUnmappedProperties } from "./actions";
@@ -57,7 +58,7 @@ export default async function AdminMapPage({ searchParams }: { searchParams: Pro
     photosByQuoteId.set(file.related_id, [...(photosByQuoteId.get(file.related_id) ?? []), data.signedUrl]);
   }
 
-  const mapJobs: AdminMapJob[] = jobRows.map((job) => {
+  const rawMapJobs: AdminMapJob[] = jobRows.map((job) => {
     const customer = one(job.customers);
     const property = one(job.properties);
     const estimate = one(job.estimate);
@@ -88,6 +89,8 @@ export default async function AdminMapPage({ searchParams }: { searchParams: Pro
     };
   });
 
+  const outsideAreaCount = rawMapJobs.filter((job) => job.latitude && job.longitude && !isInGreaterCincinnati(job.latitude, job.longitude)).length;
+  const mapJobs = rawMapJobs.filter((job) => !job.latitude || !job.longitude || isInGreaterCincinnati(job.latitude, job.longitude));
   const unmappedCount = mapJobs.filter((job) => !job.latitude || !job.longitude).length;
   const googleMapsBrowserKey = getGoogleMapsBrowserKey();
 
@@ -99,6 +102,7 @@ export default async function AdminMapPage({ searchParams }: { searchParams: Pro
       </div>
       {params.error ? <Card className="border-red-200 bg-red-50 text-sm text-[var(--danger)]">{params.error}</Card> : null}
       {params.geocoded ? <Card className="border-green-200 bg-green-50 text-sm text-[var(--success)]">Geocoded {params.geocoded} propert{params.geocoded === "1" ? "y" : "ies"}.</Card> : null}
+      {outsideAreaCount ? <Card className="border-blue-200 bg-blue-50 text-sm text-blue-900">{outsideAreaCount} job(s) are outside the Greater Cincinnati planning area and are hidden from this routing map.</Card> : null}
       {unmappedCount ? (
         <Card className="border-yellow-200 bg-yellow-50 text-sm text-yellow-900">
           <div className="flex flex-wrap items-center justify-between gap-3">

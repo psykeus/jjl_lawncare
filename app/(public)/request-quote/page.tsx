@@ -4,11 +4,11 @@ import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/server";
 import { submitQuoteRequest } from "./actions";
 
-export default function RequestQuotePage({ searchParams }: { searchParams: Promise<{ error?: string; submitted?: string }> }) {
+export default function RequestQuotePage({ searchParams }: { searchParams: Promise<{ error?: string; submitted?: string; serviceId?: string }> }) {
   return <RequestQuoteContent searchParams={searchParams} />;
 }
 
-async function RequestQuoteContent({ searchParams }: { searchParams: Promise<{ error?: string; submitted?: string }> }) {
+async function RequestQuoteContent({ searchParams }: { searchParams: Promise<{ error?: string; submitted?: string; serviceId?: string }> }) {
   const params = await searchParams;
   const services = await getVisibleServices();
 
@@ -35,7 +35,7 @@ async function RequestQuoteContent({ searchParams }: { searchParams: Promise<{ e
             <Field label="Email"><Input name="email" type="email" required /></Field>
             <Field label="Phone"><Input name="phone" required /></Field>
             <Field label="Service requested">
-              <Select name="requestedServiceId">
+              <Select name="requestedServiceId" defaultValue={params.serviceId ?? ""}>
                 <option value="">Not sure / choose later</option>
                 {services.map((service) => (
                   <option key={service.id} value={service.id}>{service.name}</option>
@@ -62,7 +62,7 @@ async function RequestQuoteContent({ searchParams }: { searchParams: Promise<{ e
           <Field label="Gate/access notes"><Textarea name="gateAccess" /></Field>
           <Field label="Preferred dates"><Input name="preferredDates" placeholder="Example: next Saturday morning" /></Field>
           <Field label="Customer notes"><Textarea name="customerNotes" /></Field>
-          <Field label="Photos" hint="Upload up to 6 photos of the yard or cleanup area. These stay private and attach to the internal job map.">
+          <Field label="Photos" hint="Upload up to 6 photos of the yard or cleanup area. These stay private and attach to admin review and routing.">
             <Input name="photos" type="file" accept="image/*" multiple required />
           </Field>
           <div className="grid gap-3 rounded-xl bg-[var(--muted)] p-4 text-sm">
