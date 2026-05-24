@@ -1259,3 +1259,22 @@ GOOGLE_MAPS_SERVER_API_KEY=
 ```
 
 Google Maps keys should have the relevant APIs enabled and restrictions configured for browser/server usage.
+
+## Coolify deployment created
+
+A Coolify project and application have been created for this repo.
+
+* Coolify project: `jjl-lawncare`
+* Project UUID: `cj6mo60ijf2gd6bxhrnxnvmz`
+* Environment: `production`
+* Environment UUID: `abavttocain5lqfah9s224k7`
+* Application: `jjl-lawncare`
+* Application UUID: `tciidf9ia9huhxkryhzxoetb`
+* GitHub repo: `psykeus/jjl_lawncare`
+* Branch: `main`
+* Build pack: `nixpacks`
+* Exposed port: `3000`
+* Generated URL: `https://tciidf9ia9huhxkryhzxoetb.brandgears.com`
+* Last deployment checked: healthy, HTTP 200.
+
+The Coolify API token was intentionally **not** written to this file or committed to git. Keep it in Coolify/CI/user-level secrets only.
