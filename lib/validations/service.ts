@@ -21,6 +21,12 @@ export const serviceFormSchema = z.object({
   requiresPhotos: checkbox,
   requiresSiteReview: checkbox,
   recurringCapable: checkbox,
+  featuredOnHomepage: checkbox,
+  homepageTitle: emptyToNull,
+  homepageSummary: emptyToNull,
+  homepageSortOrder: z.coerce.number().int().default(0),
+  estimatedDurationMinutes: z.coerce.number().int().min(0).default(60),
+  defaultCrewSize: z.coerce.number().int().min(1).default(1),
   active: checkbox,
   sortOrder: z.coerce.number().int().default(0),
 });

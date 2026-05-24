@@ -8,18 +8,20 @@ async function getHomepageServices() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("services")
-    .select("id, name, public_description, service_type, pricing_type, base_price, min_price, max_price, unit_label, customer_visible_range, sort_order")
+    .select("id, name, public_description, service_type, pricing_type, base_price, min_price, max_price, unit_label, customer_visible_range, featured_on_homepage, homepage_title, homepage_summary, homepage_sort_order, sort_order")
     .eq("active", true)
     .eq("visible_to_customer", true)
     .neq("service_type", "excluded")
+    .order("homepage_sort_order")
     .order("sort_order")
-    .limit(6);
+    .limit(8);
   return (data ?? []) as PublicService[];
 }
 
 export default async function HomePage() {
   const services = await getHomepageServices();
-  const coreServices = services.filter((service) => service.service_type === "core").slice(0, 4);
+  const featuredServices = services.filter((service) => service.featured_on_homepage).slice(0, 4);
+  const coreServices = (featuredServices.length ? featuredServices : services.filter((service) => service.service_type === "core")).slice(0, 4);
   const handled = services.length ? services.slice(0, 5).map((service) => service.name) : ["Lawn mowing, trimming, and blowing clippings", "Flower bed and seasonal yard cleanup", "Stick pickup and light debris bagging", "Mulch spreading and walkway sweeping", "Clear exclusions for unsafe work"];
 
   return (
@@ -60,8 +62,8 @@ export default async function HomePage() {
               {coreServices.map((service) => (
                 <Card key={service.id}>
                   <div className="text-xs font-semibold uppercase tracking-wide text-[var(--primary)]">{servicePriceLabel(service)}</div>
-                  <h3 className="mt-2 text-lg font-bold">{service.name}</h3>
-                  <p className="mt-2 text-sm text-[var(--muted-foreground)]">{service.public_description ?? "Final pricing depends on yard size, access, photos, and site conditions."}</p>
+                  <h3 className="mt-2 text-lg font-bold">{service.homepage_title ?? service.name}</h3>
+                  <p className="mt-2 text-sm text-[var(--muted-foreground)]">{service.homepage_summary ?? service.public_description ?? "Final pricing depends on yard size, access, photos, and site conditions."}</p>
                   <ButtonLink className="mt-4" href={requestServiceHref(service.id)} size="sm">Request this</ButtonLink>
                 </Card>
               ))}

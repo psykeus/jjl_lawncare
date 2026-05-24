@@ -39,21 +39,28 @@ async function getVisibleServicesWithQuestions(): Promise<WizardService[]> {
   const supabase = await createClient();
   const { data: services } = await supabase
     .from("services")
-    .select("id, name, public_description, service_type, pricing_type, base_price, min_price, max_price, unit_label, customer_visible_range, requires_photos, requires_parent_approval, requires_site_review, sort_order")
+    .select("id, name, public_description, service_type, pricing_type, base_price, min_price, max_price, unit_label, customer_visible_range, requires_photos, requires_parent_approval, requires_site_review, estimated_duration_minutes, default_crew_size, sort_order")
     .eq("active", true)
     .eq("visible_to_customer", true)
     .neq("service_type", "excluded")
     .order("sort_order");
 
-  const serviceRows = (services ?? []) as Omit<WizardService, "questions">[];
+  const serviceRows = (services ?? []) as Omit<WizardService, "questions" | "upsell_service_ids">[];
   if (!serviceRows.length) return [];
 
-  const { data: questions, error } = await supabase
+  const [{ data: questions, error }, { data: upsells }] = await Promise.all([
+    supabase
     .from("service_questions")
     .select("id, service_id, question_text, question_type, required, help_text, sort_order, service_question_options(id, question_id, label, value, price_modifier, duration_modifier_minutes, risk_modifier, requires_parent_approval, sort_order, active)")
-    .in("service_id", serviceRows.map((service) => service.id))
-    .eq("active", true)
-    .order("sort_order");
+      .in("service_id", serviceRows.map((service) => service.id))
+      .eq("active", true)
+      .order("sort_order"),
+    supabase
+      .from("service_upsells")
+      .select("core_service_id, upsell_service_id")
+      .in("core_service_id", serviceRows.map((service) => service.id))
+      .eq("active", true),
+  ]);
 
   const questionsByService = new Map<string, WizardServiceQuestion[]>();
   if (!error) {
@@ -65,8 +72,14 @@ async function getVisibleServicesWithQuestions(): Promise<WizardService[]> {
     }
   }
 
+  const upsellsByService = new Map<string, string[]>();
+  for (const link of upsells ?? []) {
+    upsellsByService.set(link.core_service_id, [...(upsellsByService.get(link.core_service_id) ?? []), link.upsell_service_id]);
+  }
+
   return serviceRows.map((service) => ({
     ...service,
+    upsell_service_ids: upsellsByService.get(service.id) ?? [],
     questions: (questionsByService.get(service.id) ?? []).sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0)),
   }));
 }

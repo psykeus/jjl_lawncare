@@ -44,6 +44,7 @@ export default async function AdminServicesPage({ searchParams }: { searchParams
                   <div className="flex flex-wrap gap-2">
                     <ButtonLink href={`/admin/services/${service.id}/edit`} size="sm" variant="outline">Edit</ButtonLink>
                     <ButtonLink href={`/admin/services/${service.id}/questions`} size="sm" variant="outline">Questions</ButtonLink>
+                    <ButtonLink href={`/admin/services/${service.id}/upsells`} size="sm" variant="outline">Upsells</ButtonLink>
                     {service.active ? (
                       <form action={deactivateService}>
                         <input type="hidden" name="id" value={service.id} />

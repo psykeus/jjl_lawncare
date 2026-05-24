@@ -20,6 +20,12 @@ type Service = {
   requires_photos?: boolean | null;
   requires_site_review?: boolean | null;
   recurring_capable?: boolean | null;
+  featured_on_homepage?: boolean | null;
+  homepage_title?: string | null;
+  homepage_summary?: string | null;
+  homepage_sort_order?: number | null;
+  estimated_duration_minutes?: number | null;
+  default_crew_size?: number | null;
   active?: boolean | null;
   sort_order?: number | null;
 };
@@ -77,6 +83,24 @@ export function ServiceForm({
           <Field label="Minimum price"><Input name="minPrice" type="number" min="0" step="0.01" defaultValue={service?.min_price ?? ""} /></Field>
           <Field label="Maximum guide price"><Input name="maxPrice" type="number" min="0" step="0.01" defaultValue={service?.max_price ?? ""} /></Field>
           <Field label="Unit label"><Input name="unitLabel" defaultValue={service?.unit_label ?? ""} placeholder="bag, hour, cubic yard" /></Field>
+        </div>
+      </Card>
+
+      <Card className="grid gap-4">
+        <h2 className="text-xl font-bold">Public homepage card</h2>
+        <label className="text-sm"><input className="mr-2" type="checkbox" name="featuredOnHomepage" defaultChecked={service?.featured_on_homepage ?? false} /> Feature on homepage</label>
+        <div className="grid gap-4 md:grid-cols-[1fr_160px]">
+          <Field label="Homepage title"><Input name="homepageTitle" defaultValue={service?.homepage_title ?? ""} placeholder={service?.name ?? ""} /></Field>
+          <Field label="Homepage sort"><Input name="homepageSortOrder" type="number" defaultValue={service?.homepage_sort_order ?? service?.sort_order ?? 0} /></Field>
+        </div>
+        <Field label="Homepage summary"><Textarea name="homepageSummary" defaultValue={service?.homepage_summary ?? ""} /></Field>
+      </Card>
+
+      <Card className="grid gap-4">
+        <h2 className="text-xl font-bold">Workload defaults</h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Estimated duration minutes"><Input name="estimatedDurationMinutes" type="number" min="0" defaultValue={service?.estimated_duration_minutes ?? 60} /></Field>
+          <Field label="Default crew size"><Input name="defaultCrewSize" type="number" min="1" defaultValue={service?.default_crew_size ?? 1} /></Field>
         </div>
       </Card>
 

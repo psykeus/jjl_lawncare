@@ -75,7 +75,10 @@ export async function createAdminJob(formData: FormData) {
   const serviceId = String(formData.get("serviceId") ?? "") || null;
   const assignedCrewIds = formData.getAll("assignedCrewIds").map(String).filter(Boolean);
   const supabase = await createClient();
-  const { data: property } = await supabase.from("properties").select("id, customer_id").eq("id", propertyId).maybeSingle();
+  const [{ data: property }, { data: service }] = await Promise.all([
+    supabase.from("properties").select("id, customer_id").eq("id", propertyId).maybeSingle(),
+    serviceId ? supabase.from("services").select("estimated_duration_minutes, default_crew_size").eq("id", serviceId).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
   if (!property) redirect("/admin/jobs/new?error=Property not found");
 
   const checklist = await buildChecklistSnapshotForService(serviceId);
@@ -89,6 +92,8 @@ export async function createAdminJob(formData: FormData) {
       scheduled_start_time: String(formData.get("scheduledStartTime") ?? "") || null,
       scheduled_end_time: String(formData.get("scheduledEndTime") ?? "") || null,
       assigned_crew_ids: assignedCrewIds,
+      estimated_duration_minutes: Number(service?.estimated_duration_minutes ?? 60),
+      required_crew_size: Number(service?.default_crew_size ?? 1),
       checklist_snapshot: checklist,
       customer_visible_notes: String(formData.get("requestedWork") ?? ""),
       tool_notes: String(formData.get("toolNotes") ?? ""),
@@ -111,7 +116,7 @@ export async function convertEstimateToJob(formData: FormData) {
   const supabase = await createClient();
   const { data: estimate } = await supabase
     .from("documents")
-    .select("id, status, customer_id, property_id")
+    .select("id, status, customer_id, property_id, quote_request_id")
     .eq("id", estimateId)
     .eq("document_type", "estimate")
     .maybeSingle();
@@ -123,6 +128,14 @@ export async function convertEstimateToJob(formData: FormData) {
   if (existing) redirect(`/admin/jobs/${existing.id}`);
 
   const checklist = await buildChecklistSnapshot(estimate.id);
+  const { data: requestedServices } = estimate.quote_request_id
+    ? await supabase.from("quote_request_services").select("estimated_duration_minutes, services(default_crew_size)").eq("quote_request_id", estimate.quote_request_id)
+    : { data: [] };
+  const estimatedDuration = (requestedServices ?? []).reduce((sum, service) => sum + Number(service.estimated_duration_minutes ?? 0), 0) || 60;
+  const requiredCrewSize = Math.max(1, ...(requestedServices ?? []).map((service) => {
+    const related = Array.isArray(service.services) ? service.services[0] : service.services;
+    return Number(related?.default_crew_size ?? 1);
+  }));
   const { data: job, error } = await supabase
     .from("jobs")
     .insert({
@@ -130,6 +143,8 @@ export async function convertEstimateToJob(formData: FormData) {
       property_id: estimate.property_id,
       estimate_id: estimate.id,
       status: "accepted",
+      estimated_duration_minutes: estimatedDuration,
+      required_crew_size: requiredCrewSize,
       checklist_snapshot: checklist,
     })
     .select("id")

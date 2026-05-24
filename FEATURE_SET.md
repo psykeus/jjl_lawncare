@@ -3,7 +3,7 @@
 ## Public site
 
 - Homepage, services, pricing, service area, contact, and terms pages
-- Homepage popular-service cards are driven by the admin service catalog
+- Homepage popular-service cards are driven by the admin service catalog and admin-managed featured/homepage fields
 - Services page groups admin-managed services into core services, add-ons/upsells, case-by-case work, and exclusions
 - Pricing page reads public pricing/ranges from admin-managed services
 - Public quote request wizard with guided steps:
@@ -104,6 +104,9 @@
   - Customer visibility
   - Parent approval/photo/site-review flags
   - Recurring capability
+  - Homepage featured flag/title/summary/sort order
+  - Estimated duration minutes
+  - Default crew size
 - Public homepage/services/pricing pages are tied to the admin service catalog
 - Admin service-question manager at `/admin/services/[id]/questions`
 - Add/edit/deactivate service-specific intake questions
@@ -114,6 +117,9 @@
   - Yes/no
   - Short text
   - Number
+- Admin targeted upsell manager at `/admin/services/[id]/upsells`
+- Add-on upsell choices can be linked to specific core services
+- Public request wizard shows targeted add-on suggestions when selected core services have configured upsells
 - Add/edit/deactivate button-answer options per question
 - Service answer options can carry:
   - Price modifier
@@ -197,6 +203,7 @@
 - Crew-size warnings when a job needs more people than available
 - Time-window warnings when the planned route exceeds latest-end constraints
 - Deterministic route timeline using route priority, scheduled/window times, estimated duration, and a travel buffer
+- Potential time-slot finder for new jobs using requested duration, required crew count, travel buffer, and remaining capacity
 - Slot guidance based on remaining crew-minutes
 - Internal admin job map
 - Google Maps embedded map support
@@ -298,7 +305,9 @@
 - Seed data
 - Service-area schema and policies
 - Service-question/options schema and policies
+- Service upsell schema and policies
 - Quote-request service/answer/photo-link schema and policies
+- Service catalog homepage/workload default columns
 - Job scheduling/workload columns
 - Crew availability schema and policies
 - Private storage buckets:

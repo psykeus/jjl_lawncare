@@ -30,6 +30,8 @@ type ServiceRow = {
   max_price: number | string | null;
   requires_parent_approval: boolean | null;
   requires_photos: boolean | null;
+  estimated_duration_minutes: number | string | null;
+  default_crew_size: number | string | null;
 };
 
 type OptionRow = {
@@ -140,7 +142,7 @@ export async function submitQuoteRequest(formData: FormData) {
   const answerOptionIds = Array.from(new Set(selectedServices.flatMap((item) => item.answers.flatMap((answer) => answer.optionIds))));
 
   const [{ data: services }, { data: options }] = await Promise.all([
-    supabase.from("services").select("id, name, service_type, base_price, min_price, max_price, requires_parent_approval, requires_photos").in("id", serviceIds),
+    supabase.from("services").select("id, name, service_type, base_price, min_price, max_price, requires_parent_approval, requires_photos, estimated_duration_minutes, default_crew_size").in("id", serviceIds),
     answerOptionIds.length ? supabase.from("service_question_options").select("id, question_id, label, price_modifier, duration_modifier_minutes, risk_modifier, requires_parent_approval").in("id", answerOptionIds) : Promise.resolve({ data: [] as OptionRow[] }),
   ]);
 
@@ -232,7 +234,7 @@ export async function submitQuoteRequest(formData: FormData) {
     const service = servicesById.get(selected.serviceId);
     const selectedOptions = selected.answers.flatMap((answer) => answer.optionIds.map((optionId) => optionsById.get(optionId)).filter((option): option is OptionRow => Boolean(option)));
     const modifierTotal = selectedOptions.reduce((sum, option) => sum + Number(option.price_modifier ?? 0), 0);
-    const durationTotal = selectedOptions.reduce((sum, option) => sum + Number(option.duration_modifier_minutes ?? 0), 0);
+    const durationTotal = Number(service?.estimated_duration_minutes ?? 0) + selectedOptions.reduce((sum, option) => sum + Number(option.duration_modifier_minutes ?? 0), 0);
     const base = numberOrNull(service?.base_price);
     const min = numberOrNull(service?.min_price) ?? base;
     const max = numberOrNull(service?.max_price) ?? base ?? min;

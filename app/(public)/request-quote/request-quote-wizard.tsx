@@ -47,6 +47,9 @@ export type WizardService = {
   requires_photos: boolean;
   requires_parent_approval: boolean;
   requires_site_review: boolean;
+  estimated_duration_minutes?: number | null;
+  default_crew_size?: number | null;
+  upsell_service_ids: string[];
   questions: WizardServiceQuestion[];
 };
 
@@ -72,10 +75,12 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(initialSelection);
   const [answers, setAnswers] = useState<AnswerState>({});
   const [notes, setNotes] = useState<NotesState>({});
+  const [photoServiceIds, setPhotoServiceIds] = useState<string[]>([]);
 
   const selectedServices = useMemo(() => services.filter((service) => selectedServiceIds.includes(service.id)), [selectedServiceIds, services]);
   const coreServices = services.filter((service) => service.service_type === "core");
-  const addOns = services.filter((service) => service.service_type === "add_on");
+  const selectedUpsellIds = new Set(selectedServices.flatMap((service) => service.upsell_service_ids));
+  const addOns = services.filter((service) => service.service_type === "add_on" && (selectedUpsellIds.size ? selectedUpsellIds.has(service.id) || selectedServiceIds.includes(service.id) : true));
   const caseByCase = services.filter((service) => service.service_type === "case_by_case");
   const selectedJson = useMemo(() => JSON.stringify(selectedServices.map((service, index) => ({
     serviceId: service.id,
@@ -89,7 +94,11 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
   }))), [answers, notes, selectedServices]);
 
   function toggleService(id: string) {
-    setSelectedServiceIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+    setSelectedServiceIds((current) => {
+      const removing = current.includes(id);
+      if (removing) setPhotoServiceIds((photoIds) => photoIds.filter((item) => item !== id));
+      return removing ? current.filter((item) => item !== id) : [...current, id];
+    });
   }
 
   function setAnswer(question: WizardServiceQuestion, value: string, checked = true) {
@@ -107,12 +116,15 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
   }
 
   function canContinueDetails() {
-    return selectedServices.every((service) => service.questions.every((question) => {
-      if (!question.required) return true;
-      const answer = answers[question.id];
-      if (Array.isArray(answer)) return answer.length > 0;
-      return Boolean(answer && answer.trim());
-    }));
+    return selectedServices.every((service) => {
+      if (!photoServiceIds.includes(service.id)) return false;
+      return service.questions.every((question) => {
+        if (!question.required) return true;
+        const answer = answers[question.id];
+        if (Array.isArray(answer)) return answer.length > 0;
+        return Boolean(answer && answer.trim());
+      });
+    });
   }
 
   function ServiceCard({ service }: { service: WizardService }) {
@@ -181,8 +193,7 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
       </div>
       {error ? <div className="rounded-lg bg-red-50 p-3 text-sm font-medium text-[var(--danger)]">{error}</div> : null}
 
-      {step === 0 ? (
-        <Card className="space-y-5">
+      <Card className={step === 0 ? "space-y-5" : "hidden"}>
           <div>
             <h2 className="text-2xl font-black">Where is the work?</h2>
             <p className="mt-2 text-sm text-[var(--muted-foreground)]">Start with the property address so we can check the service area before you spend time adding details.</p>
@@ -190,10 +201,8 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
           <RequestAddressFields apiKey={apiKey} />
           <div className="flex justify-end"><Button type="button" onClick={() => setStep(1)}>Next: choose services</Button></div>
         </Card>
-      ) : null}
 
-      {step === 1 ? (
-        <Card className="space-y-6">
+      <Card className={step === 1 ? "space-y-6" : "hidden"}>
           <div>
             <h2 className="text-2xl font-black">What do you need help with?</h2>
             <p className="mt-2 text-sm text-[var(--muted-foreground)]">Choose one or more services. Add-ons appear below as simple upsells after you choose a core service.</p>
@@ -216,10 +225,8 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
             <Button type="button" onClick={() => setStep(2)} disabled={!canContinueServices()}>Next: answer details</Button>
           </div>
         </Card>
-      ) : null}
 
-      {step === 2 ? (
-        <Card className="space-y-6">
+      <Card className={step === 2 ? "space-y-6" : "hidden"}>
           <div>
             <h2 className="text-2xl font-black">Service details</h2>
             <p className="mt-2 text-sm text-[var(--muted-foreground)]">Answer quick questions and attach photos for each selected service. These help the admin estimate workload and route timing.</p>
@@ -248,21 +255,20 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
                   <Textarea value={notes[service.id] ?? ""} onChange={(event) => setNotes((current) => ({ ...current, [service.id]: event.target.value }))} />
                 </Field>
                 <Field label={`Photos for ${service.name}`} hint="Upload photos for this specific service area. At least one photo across the request is required.">
-                  <Input name={`servicePhotos:${service.id}`} type="file" accept="image/*" multiple required={service.requires_photos} />
+                  <Input name={`servicePhotos:${service.id}`} type="file" accept="image/*" multiple onChange={(event) => setPhotoServiceIds((current) => event.currentTarget.files?.length ? Array.from(new Set([...current, service.id])) : current.filter((id) => id !== service.id))} />
                 </Field>
               </div>
             </div>
           ))}
           {!selectedServices.length ? <p className="text-sm text-[var(--muted-foreground)]">Choose at least one service first.</p> : null}
+          {selectedServices.length && !canContinueDetails() ? <p className="text-sm font-semibold text-amber-700">Answer required questions and upload at least one photo for each selected service to continue.</p> : null}
           <div className="flex flex-wrap justify-between gap-2">
             <Button type="button" variant="outline" onClick={() => setStep(1)}>Back</Button>
             <Button type="button" onClick={() => setStep(3)} disabled={!selectedServices.length || !canContinueDetails()}>Next: contact</Button>
           </div>
         </Card>
-      ) : null}
 
-      {step === 3 ? (
-        <Card className="space-y-5">
+      <Card className={step === 3 ? "space-y-5" : "hidden"}>
           <div>
             <h2 className="text-2xl font-black">Contact and timing</h2>
             <p className="mt-2 text-sm text-[var(--muted-foreground)]">No account is required to submit this request. If you already have one, you can also <Link href="/auth/login" className="font-semibold text-[var(--primary)]">log in</Link>.</p>
@@ -290,7 +296,6 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error }
             <Button type="submit" size="lg" disabled={!selectedServices.length}>Submit quote request</Button>
           </div>
         </Card>
-      ) : null}
     </form>
   );
 }

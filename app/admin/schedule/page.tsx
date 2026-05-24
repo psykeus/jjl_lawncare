@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
-import { availabilityMinutes, findCapacityWarnings, jobWorkloadMinutes, minutesToTime, type CrewAvailability, type PlannerJob } from "@/lib/schedule/planner";
+import { availabilityMinutes, buildRouteTimeline, findCapacityWarnings, jobWorkloadMinutes, minutesToTime, type CrewAvailability, type PlannerJob } from "@/lib/schedule/planner";
 import { formatDate } from "@/lib/utils";
 
 type RelatedRow<T> = T | T[] | null;
 function one<T>(value: RelatedRow<T>): T | null { return Array.isArray(value) ? (value[0] ?? null) : value; }
 function today() { return new Date().toISOString().slice(0, 10); }
 
-export default async function AdminSchedulePage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
+export default async function AdminSchedulePage({ searchParams }: { searchParams: Promise<{ date?: string; duration?: string; crew?: string }> }) {
   const params = await searchParams;
   const date = params.date ?? today();
   const supabase = await createClient();
@@ -41,6 +41,13 @@ export default async function AdminSchedulePage({ searchParams }: { searchParams
     return { id: row.id, crewName: profile?.name ?? profile?.email ?? "Crew", startTime: row.start_time, endTime: row.end_time, maxHours: row.max_hours ? Number(row.max_hours) : null };
   });
   const capacity = findCapacityWarnings(plannerJobs, crewAvailability);
+  const newDuration = Number(params.duration ?? 60);
+  const newCrew = Number(params.crew ?? 1);
+  const newWorkload = newDuration * newCrew + (plannerJobs.length ? 15 : 0);
+  const timeline = buildRouteTimeline(plannerJobs, crewAvailability[0]?.startTime ? Number(crewAvailability[0].startTime.split(":")[0]) * 60 + Number(crewAvailability[0].startTime.split(":")[1]) : 9 * 60);
+  const lastEnd = timeline.at(-1)?.end ?? (crewAvailability[0]?.startTime ? Number(crewAvailability[0].startTime.split(":")[0]) * 60 + Number(crewAvailability[0].startTime.split(":")[1]) : 9 * 60);
+  const suggestedStart = lastEnd + (plannerJobs.length ? 15 : 0);
+  const dayHasSlot = capacity.remaining >= newWorkload;
 
   return (
     <div className="space-y-6">
@@ -61,6 +68,19 @@ export default async function AdminSchedulePage({ searchParams }: { searchParams
       </div>
 
       {capacity.warnings.length ? <Card className="border-red-200 bg-red-50"><h2 className="font-bold text-[var(--danger)]">Warnings</h2><ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-red-900">{capacity.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></Card> : <Card className="border-green-200 bg-green-50 text-sm text-green-800">No overbooking warnings for {formatDate(date)}.</Card>}
+
+      <Card>
+        <h2 className="text-xl font-bold">Potential time-slot finder</h2>
+        <form className="mt-4 grid gap-3 md:grid-cols-[1fr_140px_120px_auto]">
+          <label className="grid gap-2 text-sm font-medium">Date<input className="h-10 rounded-lg border border-[var(--border)] px-3 text-sm" name="date" type="date" defaultValue={date} /></label>
+          <label className="grid gap-2 text-sm font-medium">Minutes<input className="h-10 rounded-lg border border-[var(--border)] px-3 text-sm" name="duration" type="number" defaultValue={newDuration} min="15" /></label>
+          <label className="grid gap-2 text-sm font-medium">Crew<input className="h-10 rounded-lg border border-[var(--border)] px-3 text-sm" name="crew" type="number" defaultValue={newCrew} min="1" /></label>
+          <button className="self-end rounded-lg bg-[var(--primary)] px-4 py-2 font-semibold text-white">Check slot</button>
+        </form>
+        <div className={`mt-4 rounded-xl p-4 text-sm ${dayHasSlot ? "bg-green-50 text-green-800" : "bg-red-50 text-red-900"}`}>
+          {dayHasSlot ? <>Suggested slot: start around <strong>{minutesToTime(suggestedStart)}</strong>. This adds about {newWorkload} crew-minutes including route buffer.</> : <>This day is full or overbooked for a {newDuration}-minute job needing {newCrew} crew. It needs {newWorkload} crew-minutes, but only {capacity.remaining} remain.</>}
+        </div>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <Card className="overflow-x-auto p-0">

@@ -11,6 +11,10 @@ export type PublicService = {
   max_price: number | null;
   unit_label: string | null;
   customer_visible_range: string | null;
+  featured_on_homepage?: boolean | null;
+  homepage_title?: string | null;
+  homepage_summary?: string | null;
+  homepage_sort_order?: number | null;
   sort_order: number;
 };
 
