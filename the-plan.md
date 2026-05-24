@@ -1275,6 +1275,7 @@ A Coolify project and application have been created for this repo.
 * Build pack: `nixpacks`
 * Exposed port: `3000`
 * Generated URL: `https://tciidf9ia9huhxkryhzxoetb.brandgears.com`
+* Production URL: `https://jjl.brandgears.com`
 * Last deployment checked: healthy, HTTP 200.
 
 The Coolify API token was intentionally **not** written to this file or committed to git. Keep it in Coolify/CI/user-level secrets only.
@@ -1297,3 +1298,5 @@ A dedicated `/admin/users` page was added for platform access management:
 * Show user analytics: linked customer records, assigned jobs, open crew jobs, activity count, last activity, and last sign-in.
 
 Banning is implemented through the existing `profiles.active` access check plus Supabase Auth admin ban duration so banned users are blocked at app access and auth levels.
+
+The admin dashboard/access expansion was deployed to Coolify after commit `822ce35`. `NEXT_PUBLIC_APP_URL` in Coolify was updated to `https://jjl.brandgears.com`, and the production site returned HTTP 200 after deployment.
