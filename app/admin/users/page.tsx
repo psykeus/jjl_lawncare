@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { Alert } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
@@ -32,8 +33,9 @@ function roleLabel(role: string) {
   return "Customer";
 }
 
-export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string; archived?: string; deleted?: string; reset?: string }> }) {
+export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string; archived?: string; deleted?: string; reset?: string; type?: string }> }) {
   const params = await searchParams;
+  const selectedType = params.type === "admin" || params.type === "crew" || params.type === "customer" ? params.type : "all";
   const supabase = createAdminClient();
   const [{ data: profiles }, { data: customers }, { data: jobs }, { data: activities }, authUsersResult] = await Promise.all([
     supabase.from("profiles").select("id, auth_user_id, name, email, phone, role, active, created_at").order("created_at", { ascending: false }),
@@ -64,15 +66,22 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
     activityByProfile.set(activity.actor_id, { count: existing.count + 1, lastAction: existing.lastAction ?? activity.action, lastAt: existing.lastAt ?? activity.created_at });
   }
 
-  const rows = (profiles ?? []) as ProfileRow[];
+  const allRows = (profiles ?? []) as ProfileRow[];
+  const rows = selectedType === "all" ? allRows : allRows.filter((profile) => profile.role === selectedType);
   const totals = {
-    users: rows.length,
-    active: rows.filter((profile) => profile.active).length,
-    banned: rows.filter((profile) => !profile.active || authById.get(profile.auth_user_id)?.bannedUntil).length,
-    admins: rows.filter((profile) => profile.role === "admin" && profile.active).length,
-    crew: rows.filter((profile) => profile.role === "crew" && profile.active).length,
-    customers: rows.filter((profile) => profile.role === "customer" && profile.active).length,
+    users: allRows.length,
+    active: allRows.filter((profile) => profile.active).length,
+    banned: allRows.filter((profile) => !profile.active || authById.get(profile.auth_user_id)?.bannedUntil).length,
+    admins: allRows.filter((profile) => profile.role === "admin" && profile.active).length,
+    crew: allRows.filter((profile) => profile.role === "crew" && profile.active).length,
+    customers: allRows.filter((profile) => profile.role === "customer" && profile.active).length,
   };
+  const filters = [
+    { label: "All", value: "all", count: totals.users, href: "/admin/users" },
+    { label: "Admins", value: "admin", count: allRows.filter((profile) => profile.role === "admin").length, href: "/admin/users?type=admin" },
+    { label: "Crew", value: "crew", count: allRows.filter((profile) => profile.role === "crew").length, href: "/admin/users?type=crew" },
+    { label: "Customers", value: "customer", count: allRows.filter((profile) => profile.role === "customer").length, href: "/admin/users?type=customer" },
+  ];
 
   return (
     <div className="space-y-5">
@@ -84,13 +93,32 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
       {params.deleted ? <Alert variant="success">Account deleted. Linked customer records, if any, were archived and detached.</Alert> : null}
 
       <StatGrid className="xl:grid-cols-6">
-        <StatCard label="Users" value={totals.users} />
-        <StatCard label="Active" value={totals.active} />
-        <StatCard label="Banned/inactive" value={totals.banned} />
-        <StatCard label="Admins" value={totals.admins} />
-        <StatCard label="Crew" value={totals.crew} />
-        <StatCard label="Customers" value={totals.customers} />
+        <StatCard label="Users" value={totals.users} href="/admin/users" />
+        <StatCard label="Active" value={totals.active} href="/admin/users" />
+        <StatCard label="Banned/inactive" value={totals.banned} href="/admin/users" />
+        <StatCard label="Admins" value={totals.admins} href="/admin/users?type=admin" />
+        <StatCard label="Crew" value={totals.crew} href="/admin/users?type=crew" />
+        <StatCard label="Customers" value={totals.customers} href="/admin/users?type=customer" />
       </StatGrid>
+
+      <Card className="p-3 sm:p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-bold">Filter users</h2>
+            <p className="text-sm text-[var(--muted-foreground)]">Showing {rows.length} of {allRows.length} account{allRows.length === 1 ? "" : "s"}.</p>
+          </div>
+          <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex sm:flex-wrap">
+            {filters.map((filter) => {
+              const active = selectedType === filter.value;
+              return (
+                <Link key={filter.value} href={filter.href} className={`focus-ring rounded-xl border px-3 py-2 text-center text-sm font-bold transition ${active ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]" : "border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"}`}>
+                  {filter.label} <span className="opacity-75">{filter.count}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </Card>
 
       <Card>
         <h2 className="text-xl font-bold">Create platform user</h2>
@@ -111,6 +139,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
       </Card>
 
       <div className="grid gap-3 md:hidden">
+        {rows.length ? null : <Card><p className="text-sm text-[var(--muted-foreground)]">No {selectedType === "all" ? "" : `${selectedType} `}users found.</p></Card>}
         {rows.map((profile) => {
           const auth = authById.get(profile.auth_user_id);
           const activity = activityByProfile.get(profile.id);
