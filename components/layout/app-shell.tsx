@@ -23,7 +23,7 @@ export function AppShell({ role, name, children }: { role: AppRole; name?: strin
           </div>
         </div>
       </header>
-      <div className="container-page py-4 lg:py-6">
+      <div className="container-page py-3 sm:py-4 lg:py-5">
         <main className="min-w-0">{children}</main>
       </div>
       <MobileBottomNav role={role} />

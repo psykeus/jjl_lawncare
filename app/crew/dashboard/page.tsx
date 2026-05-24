@@ -50,10 +50,10 @@ export default async function CrewDashboardPage() {
       />
 
       <StatGrid>
-        <StatCard label="Today" value={todayJobs.length} hint="Jobs scheduled today" />
-        <StatCard label="Open jobs" value={openJobs.length} hint="Assigned active work" />
-        <StatCard label="Paid revenue" value={formatCurrency(paidRevenue)} hint="Paid completed work" />
-        <StatCard label="Rough share" value={formatCurrency(roughCrewShare)} hint="Estimated crew split" />
+        <StatCard label="Today" value={todayJobs.length} hint="Jobs scheduled today" href="/crew/jobs" />
+        <StatCard label="Open jobs" value={openJobs.length} hint="Assigned active work" href="/crew/jobs" />
+        <StatCard label="Paid revenue" value={formatCurrency(paidRevenue)} hint="Paid completed work" href="/crew/earnings" />
+        <StatCard label="Rough share" value={formatCurrency(roughCrewShare)} hint="Estimated crew split" href="/crew/earnings" />
       </StatGrid>
 
       {rows.length ? (

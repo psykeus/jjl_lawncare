@@ -89,22 +89,22 @@ export default async function AdminDashboardPage() {
   const collected = paymentRows.filter((payment) => payment.status === "paid").reduce((sum, payment) => sum + Number(payment.amount ?? 0), 0);
 
   const cards = [
-    ["New quote requests", newRequests, "Requests needing first review"],
-    ["Needs review", reviewRequests, "Requests flagged for admin/parent review"],
-    ["Estimates awaiting approval", sentEstimates, "Sent estimates not yet accepted"],
-    ["Scheduled jobs", scheduledJobs, "Jobs currently scheduled"],
-    ["Unpaid invoices", unpaidInvoices, "Invoices still unpaid"],
-    ["Expense records", expenses, "Logged business expenses"],
-    ["Platform users", users, "Admin, crew, and customer login accounts"],
-    ["Banned/inactive users", bannedUsers, "Profiles blocked from app access"],
-    ["Active crew", crewUsers, "Crew users available for assignment"],
-    ["Estimate pipeline", formatCurrency(estimatePipeline), "Draft/sent/viewed/accepted estimate total"],
-    ["Open invoice balance", formatCurrency(invoiceBalance), "Outstanding invoice balance"],
-    ["Collected payments", formatCurrency(collected), "Confirmed paid payment records"],
+    { title: "New quote requests", value: newRequests, description: "Requests needing first review", href: "/admin/quote-requests" },
+    { title: "Needs review", value: reviewRequests, description: "Flagged for review", href: "/admin/quote-requests" },
+    { title: "Estimates awaiting approval", value: sentEstimates, description: "Sent, not accepted", href: "/admin/estimates" },
+    { title: "Scheduled jobs", value: scheduledJobs, description: "Currently scheduled", href: "/admin/jobs" },
+    { title: "Unpaid invoices", value: unpaidInvoices, description: "Still unpaid", href: "/admin/invoices" },
+    { title: "Expense records", value: expenses, description: "Logged expenses", href: "/admin/expenses" },
+    { title: "Platform users", value: users, description: "All login accounts", href: "/admin/users" },
+    { title: "Banned/inactive users", value: bannedUsers, description: "Blocked access", href: "/admin/users" },
+    { title: "Active crew", value: crewUsers, description: "Assignable crew", href: "/admin/crew/availability" },
+    { title: "Estimate pipeline", value: formatCurrency(estimatePipeline), description: "Open estimate value", href: "/admin/estimates" },
+    { title: "Open invoice balance", value: formatCurrency(invoiceBalance), description: "Outstanding balance", href: "/admin/invoices" },
+    { title: "Collected payments", value: formatCurrency(collected), description: "Confirmed paid", href: "/admin/payments" },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-5">
       <PageHeader
         eyebrow="Command center"
         title="Admin dashboard"
@@ -119,19 +119,19 @@ export default async function AdminDashboardPage() {
       />
 
       <StatGrid>
-        {cards.map(([title, value, description]) => (
-          <StatCard key={String(title)} label={title} value={value} hint={description} />
+        {cards.map((card) => (
+          <StatCard key={card.title} label={card.title} value={card.value} hint={card.description} href={card.href} />
         ))}
       </StatGrid>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid gap-3 xl:grid-cols-2">
         {operations.map((group) => (
           <Card key={group.title}>
-            <h2 className="text-xl font-bold">{group.title}</h2>
-            <p className="mt-2 text-sm text-[var(--muted-foreground)]">{group.description}</p>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <h2 className="text-lg font-bold sm:text-xl">{group.title}</h2>
+            <p className="mt-1 text-sm text-[var(--muted-foreground)]">{group.description}</p>
+            <div className="mt-3 grid gap-2 md:grid-cols-2">
               {group.links.map(([label, href, description]) => (
-                <Link key={href} className="rounded-xl border border-[var(--border)] p-4 hover:bg-[var(--muted)]" href={href}>
+                <Link key={href} className="focus-ring rounded-xl border border-[var(--border)] p-3 transition hover:-translate-y-0.5 hover:bg-[var(--muted)] hover:shadow-sm" href={href}>
                   <div className="font-semibold">{label}</div>
                   <div className="mt-1 text-xs text-[var(--muted-foreground)]">{description}</div>
                 </Link>
@@ -141,7 +141,7 @@ export default async function AdminDashboardPage() {
         ))}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-3 lg:grid-cols-2">
         <Card>
           <h2 className="text-xl font-bold">Recent requests</h2>
           <div className="mt-4 grid gap-3 text-sm">
