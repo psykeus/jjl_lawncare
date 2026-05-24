@@ -12,6 +12,8 @@ export type PlannerJob = {
   earliestStartTime: string | null;
   latestEndTime: string | null;
   routePriority: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type CrewAvailability = {
@@ -48,6 +50,15 @@ export function availabilityMinutes(availability: CrewAvailability[]) {
   }, 0);
 }
 
+export function availableCrewCountAt(availability: CrewAvailability[], start: number, end = start) {
+  return availability.filter((row) => {
+    const availableStart = timeToMinutes(row.startTime);
+    const availableEnd = timeToMinutes(row.endTime);
+    if (availableStart == null || availableEnd == null) return false;
+    return availableStart <= start && availableEnd >= end;
+  }).length;
+}
+
 export function jobWorkloadMinutes(job: PlannerJob) {
   return Math.max(15, Number(job.estimatedDurationMinutes ?? 60)) * Math.max(1, Number(job.requiredCrewSize ?? 1));
 }
@@ -56,18 +67,59 @@ export function routeBufferMinutes(jobCount: number) {
   return Math.max(0, jobCount - 1) * 15;
 }
 
-export function sortJobsForRoute(jobs: PlannerJob[]) {
-  return [...jobs].sort((a, b) => {
-    const priority = Number(b.routePriority ?? 0) - Number(a.routePriority ?? 0);
-    if (priority) return priority;
-    const aStart = timeToMinutes(a.scheduledStartTime ?? a.earliestStartTime) ?? 9999;
-    const bStart = timeToMinutes(b.scheduledStartTime ?? b.earliestStartTime) ?? 9999;
-    if (aStart !== bStart) return aStart - bStart;
-    return `${a.city} ${a.address}`.localeCompare(`${b.city} ${b.address}`);
-  });
+function distanceMiles(a: PlannerJob, b: PlannerJob) {
+  if (a.latitude == null || a.longitude == null || b.latitude == null || b.longitude == null) return null;
+  const toRad = (value: number) => (value * Math.PI) / 180;
+  const radius = 3958.8;
+  const dLat = toRad(b.latitude - a.latitude);
+  const dLng = toRad(b.longitude - a.longitude);
+  const lat1 = toRad(a.latitude);
+  const lat2 = toRad(b.latitude);
+  const value = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return radius * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
 }
 
-export function buildRouteTimeline(jobs: PlannerJob[], dayStart = 9 * 60) {
+function routeSeedSort(a: PlannerJob, b: PlannerJob) {
+  const aStart = timeToMinutes(a.scheduledStartTime ?? a.earliestStartTime) ?? 9999;
+  const bStart = timeToMinutes(b.scheduledStartTime ?? b.earliestStartTime) ?? 9999;
+  if (aStart !== bStart) return aStart - bStart;
+  const priority = Number(b.routePriority ?? 0) - Number(a.routePriority ?? 0);
+  if (priority) return priority;
+  return `${a.city} ${a.address}`.localeCompare(`${b.city} ${b.address}`);
+}
+
+export function sortJobsForRoute(jobs: PlannerJob[]) {
+  const remaining = [...jobs].sort(routeSeedSort);
+  const route: PlannerJob[] = [];
+  let current = remaining.shift();
+  if (!current) return route;
+  route.push(current);
+
+  while (remaining.length) {
+    let bestIndex = 0;
+    let bestScore = Number.POSITIVE_INFINITY;
+    const anchor = current;
+    remaining.forEach((candidate, index) => {
+      const scheduled = timeToMinutes(candidate.scheduledStartTime ?? candidate.earliestStartTime) ?? 720;
+      const distance = distanceMiles(anchor, candidate);
+      const distanceScore = distance == null ? 25 : distance;
+      const priorityBonus = Number(candidate.routePriority ?? 0) * 2;
+      const timeScore = scheduled / 120;
+      const score = distanceScore + timeScore - priorityBonus;
+      if (score < bestScore) {
+        bestScore = score;
+        bestIndex = index;
+      }
+    });
+    const next = remaining.splice(bestIndex, 1)[0];
+    if (!next) break;
+    current = next;
+    route.push(current);
+  }
+  return route;
+}
+
+export function buildRouteTimeline(jobs: PlannerJob[], dayStart = 9 * 60, availability: CrewAvailability[] = []) {
   const sorted = sortJobsForRoute(jobs);
   let cursor = dayStart;
   return sorted.map((job, index) => {
@@ -81,11 +133,18 @@ export function buildRouteTimeline(jobs: PlannerJob[], dayStart = 9 * 60) {
     const end = start + duration;
     cursor = end;
     const latestEnd = timeToMinutes(job.latestEndTime);
+    const crewAvailable = availability.length ? availableCrewCountAt(availability, start, end) : 0;
+    const warnings = [
+      latestEnd != null && end > latestEnd ? `Past latest window by ${end - latestEnd} minutes` : null,
+      availability.length && crewAvailable < Number(job.requiredCrewSize ?? 1) ? `Needs ${job.requiredCrewSize ?? 1} crew, ${crewAvailable} available at this time` : null,
+    ].filter((warning): warning is string => Boolean(warning));
     return {
       job,
       start,
       end,
-      warning: latestEnd != null && end > latestEnd ? `Past latest window by ${end - latestEnd} minutes` : null,
+      crewAvailable,
+      warning: warnings[0] ?? null,
+      warnings,
     };
   });
 }
@@ -98,12 +157,8 @@ export function findCapacityWarnings(jobs: PlannerJob[], availability: CrewAvail
   const warnings: string[] = [];
   if (!availability.length) warnings.push("No crew availability is entered for this day.");
   if (total > crewMinutes) warnings.push(`Day is overbooked by ${Math.ceil(total - crewMinutes)} crew-minutes.`);
-  for (const job of jobs) {
-    const availableCrew = availability.length;
-    if (Number(job.requiredCrewSize ?? 1) > availableCrew) warnings.push(`${job.customerName} requires ${job.requiredCrewSize} crew, but only ${availableCrew} are available.`);
-  }
-  for (const entry of buildRouteTimeline(jobs)) {
-    if (entry.warning) warnings.push(`${entry.job.customerName}: ${entry.warning}.`);
+  for (const entry of buildRouteTimeline(jobs, availability[0]?.startTime ? (timeToMinutes(availability[0].startTime) ?? 9 * 60) : 9 * 60, availability)) {
+    for (const warning of entry.warnings) warnings.push(`${entry.job.customerName}: ${warning}.`);
   }
   return { crewMinutes, workload, travel, total, remaining: crewMinutes - total, warnings };
 }

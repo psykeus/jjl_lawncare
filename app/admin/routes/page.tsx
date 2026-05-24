@@ -11,13 +11,13 @@ export default async function AdminRoutesPage({ searchParams }: { searchParams: 
   const date = params.date ?? today();
   const supabase = await createClient();
   const [{ data: jobs }, { data: availability }] = await Promise.all([
-    supabase.from("jobs").select("id, status, scheduled_date, scheduled_start_time, scheduled_end_time, estimated_duration_minutes, required_crew_size, earliest_start_time, latest_end_time, route_priority, customers(name), properties(address_line_1, city)").eq("scheduled_date", date).in("status", ["accepted", "scheduled", "on_hold", "on_the_way", "in_progress"]).order("route_priority", { ascending: false }),
+    supabase.from("jobs").select("id, status, scheduled_date, scheduled_start_time, scheduled_end_time, estimated_duration_minutes, required_crew_size, earliest_start_time, latest_end_time, route_priority, customers(name), properties(address_line_1, city, latitude, longitude)").eq("scheduled_date", date).in("status", ["accepted", "scheduled", "on_hold", "on_the_way", "in_progress"]).order("route_priority", { ascending: false }),
     supabase.from("crew_availability").select("id, start_time, end_time, max_hours, profiles(name, email)").eq("available_date", date).eq("active", true),
   ]);
   const plannerJobs: PlannerJob[] = (jobs ?? []).map((job) => {
     const customer = one(job.customers);
     const property = one(job.properties);
-    return { id: job.id, customerName: customer?.name ?? "Unknown customer", address: property?.address_line_1 ?? "No address", city: property?.city ?? "", status: job.status, scheduledDate: job.scheduled_date, scheduledStartTime: job.scheduled_start_time, scheduledEndTime: job.scheduled_end_time, estimatedDurationMinutes: job.estimated_duration_minutes, requiredCrewSize: job.required_crew_size, earliestStartTime: job.earliest_start_time, latestEndTime: job.latest_end_time, routePriority: job.route_priority };
+    return { id: job.id, customerName: customer?.name ?? "Unknown customer", address: property?.address_line_1 ?? "No address", city: property?.city ?? "", status: job.status, scheduledDate: job.scheduled_date, scheduledStartTime: job.scheduled_start_time, scheduledEndTime: job.scheduled_end_time, estimatedDurationMinutes: job.estimated_duration_minutes, requiredCrewSize: job.required_crew_size, earliestStartTime: job.earliest_start_time, latestEndTime: job.latest_end_time, routePriority: job.route_priority, latitude: property?.latitude ? Number(property.latitude) : null, longitude: property?.longitude ? Number(property.longitude) : null };
   });
   const crewAvailability: CrewAvailability[] = (availability ?? []).map((row) => {
     const profile = one(row.profiles);
@@ -25,7 +25,7 @@ export default async function AdminRoutesPage({ searchParams }: { searchParams: 
   });
   const dayStart = crewAvailability.map((row) => row.startTime).sort()[0];
   const startMinutes = dayStart ? Number(dayStart.split(":")[0]) * 60 + Number(dayStart.split(":")[1]) : 9 * 60;
-  const timeline = buildRouteTimeline(plannerJobs, startMinutes);
+  const timeline = buildRouteTimeline(plannerJobs, startMinutes, crewAvailability);
   const capacity = findCapacityWarnings(plannerJobs, crewAvailability);
 
   return (
@@ -38,7 +38,7 @@ export default async function AdminRoutesPage({ searchParams }: { searchParams: 
       <Card>
         <h2 className="text-xl font-bold">Planned timeline</h2>
         <div className="mt-4 grid gap-3">
-          {timeline.map((entry, index) => <div key={entry.job.id} className="rounded-xl border border-[var(--border)] p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="text-sm font-bold text-[var(--primary)]">Stop {index + 1}: {minutesToTime(entry.start)}–{minutesToTime(entry.end)}</div><h3 className="mt-1 font-bold"><Link href={`/admin/jobs/${entry.job.id}`}>{entry.job.customerName}</Link></h3><p className="text-sm text-[var(--muted-foreground)]">{entry.job.address}, {entry.job.city}</p></div><div className="text-right text-sm"><div>{entry.job.estimatedDurationMinutes ?? 60} min</div><div>{entry.job.requiredCrewSize ?? 1} crew</div></div></div>{entry.warning ? <p className="mt-2 text-sm font-semibold text-[var(--danger)]">{entry.warning}</p> : null}</div>)}
+          {timeline.map((entry, index) => <div key={entry.job.id} className="rounded-xl border border-[var(--border)] p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="text-sm font-bold text-[var(--primary)]">Stop {index + 1}: {minutesToTime(entry.start)}–{minutesToTime(entry.end)}</div><h3 className="mt-1 font-bold"><Link href={`/admin/jobs/${entry.job.id}`}>{entry.job.customerName}</Link></h3><p className="text-sm text-[var(--muted-foreground)]">{entry.job.address}, {entry.job.city}</p></div><div className="text-right text-sm"><div>{entry.job.estimatedDurationMinutes ?? 60} min</div><div>{entry.job.requiredCrewSize ?? 1} crew needed</div><div>{entry.crewAvailable} crew available</div></div></div>{entry.warnings.length ? <ul className="mt-2 list-disc pl-5 text-sm font-semibold text-[var(--danger)]">{entry.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul> : null}</div>)}
           {timeline.length ? null : <p className="text-sm text-[var(--muted-foreground)]">No routeable jobs for this day.</p>}
         </div>
       </Card>

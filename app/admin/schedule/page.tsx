@@ -13,7 +13,7 @@ export default async function AdminSchedulePage({ searchParams }: { searchParams
   const date = params.date ?? today();
   const supabase = await createClient();
   const [{ data: jobs, error: jobError }, { data: availability }] = await Promise.all([
-    supabase.from("jobs").select("id, status, scheduled_date, scheduled_start_time, scheduled_end_time, estimated_duration_minutes, required_crew_size, earliest_start_time, latest_end_time, route_priority, customers(name), properties(address_line_1, city)").eq("scheduled_date", date).neq("status", "cancelled").order("scheduled_start_time"),
+    supabase.from("jobs").select("id, status, scheduled_date, scheduled_start_time, scheduled_end_time, estimated_duration_minutes, required_crew_size, earliest_start_time, latest_end_time, route_priority, customers(name), properties(address_line_1, city, latitude, longitude)").eq("scheduled_date", date).neq("status", "cancelled").order("scheduled_start_time"),
     supabase.from("crew_availability").select("id, start_time, end_time, max_hours, profiles(name, email)").eq("available_date", date).eq("active", true).order("start_time"),
   ]);
 
@@ -34,6 +34,8 @@ export default async function AdminSchedulePage({ searchParams }: { searchParams
       earliestStartTime: job.earliest_start_time,
       latestEndTime: job.latest_end_time,
       routePriority: job.route_priority,
+      latitude: property?.latitude ? Number(property.latitude) : null,
+      longitude: property?.longitude ? Number(property.longitude) : null,
     };
   });
   const crewAvailability: CrewAvailability[] = (availability ?? []).map((row) => {
@@ -44,7 +46,7 @@ export default async function AdminSchedulePage({ searchParams }: { searchParams
   const newDuration = Number(params.duration ?? 60);
   const newCrew = Number(params.crew ?? 1);
   const newWorkload = newDuration * newCrew + (plannerJobs.length ? 15 : 0);
-  const timeline = buildRouteTimeline(plannerJobs, crewAvailability[0]?.startTime ? Number(crewAvailability[0].startTime.split(":")[0]) * 60 + Number(crewAvailability[0].startTime.split(":")[1]) : 9 * 60);
+  const timeline = buildRouteTimeline(plannerJobs, crewAvailability[0]?.startTime ? Number(crewAvailability[0].startTime.split(":")[0]) * 60 + Number(crewAvailability[0].startTime.split(":")[1]) : 9 * 60, crewAvailability);
   const lastEnd = timeline.at(-1)?.end ?? (crewAvailability[0]?.startTime ? Number(crewAvailability[0].startTime.split(":")[0]) * 60 + Number(crewAvailability[0].startTime.split(":")[1]) : 9 * 60);
   const suggestedStart = lastEnd + (plannerJobs.length ? 15 : 0);
   const dayHasSlot = capacity.remaining >= newWorkload;
