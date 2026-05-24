@@ -44,7 +44,7 @@
 ## Authentication and roles
 
 - Live customer dashboard with recent requests, estimates, invoices, and jobs
-- Customer request list backed by live quote request data
+- Customer request list/detail backed by live quote request data, selected services, answers, and private photo previews
 - Customer property list backed by live property data
 - Customer account settings update for name/phone
 - Supabase Auth login/signup

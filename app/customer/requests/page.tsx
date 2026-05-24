@@ -31,7 +31,7 @@ export default async function CustomerRequestsPage() {
             <Card key={request.id}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-xl font-bold">{service?.name ?? "Quote request"}</h2>
+                  <h2 className="text-xl font-bold"><Link href={`/customer/requests/${request.id}`}>{service?.name ?? "Quote request"}</Link></h2>
                   <p className="mt-1 text-sm text-[var(--muted-foreground)]">{property?.address_line_1}, {property?.city}, {property?.state}</p>
                 </div>
                 <StatusBadge status={request.status} />
