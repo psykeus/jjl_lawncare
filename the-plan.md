@@ -1315,3 +1315,39 @@ Picture upload errors were addressed by raising the Next.js Server Action body s
 * `image/avif`
 
 Receipt and payment-proof buckets also continue to allow `application/pdf`. The online Supabase buckets were updated via the Storage API, and migration `010_expand_upload_image_support.sql` plus `db/setup.sql` now document the bucket changes for future rebuilds.
+
+## Anderson / 45255 review seed data
+
+A complete fake review dataset can be recreated with:
+
+```bash
+npm run seed:review-45255
+```
+
+The seed script uses seven public/commercial Anderson-area addresses in ZIP 45255 so the admin map and route planner can show local pins without using private residential addresses:
+
+1. 7578 Beechmont Ave, Cincinnati, OH 45255
+2. 7580 Beechmont Ave, Cincinnati, OH 45255
+3. 7636 Beechmont Ave, Cincinnati, OH 45255
+4. 7625 Beechmont Ave Suite D, Cincinnati, OH 45255
+5. 8060 Beechmont Ave, Cincinnati, OH 45255
+6. 7560 Forest Rd, Cincinnati, OH 45255
+7. 8531 Forest Rd, Cincinnati, OH 45255
+
+It creates fake review accounts under `review.jjllawn.local`, seven customers/properties with lat/lng, quote requests, normalized request services and answers, private quote photos, estimates, jobs, invoices, payments, expenses, receipts, job photos, crew availability, terms acceptances, and activity logs.
+
+Default password unless overridden by `REVIEW_SEED_PASSWORD`:
+
+```text
+ReviewDemo123!
+```
+
+Useful review accounts:
+
+```text
+admin@review.jjllawn.local
+jayden@review.jjllawn.local
+avery.thompson@review.jjllawn.local
+```
+
+The online Supabase project was populated with this review dataset after adding the script.

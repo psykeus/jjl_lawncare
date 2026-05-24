@@ -37,6 +37,30 @@ Apply migrations in order to a Supabase project, or paste/run `db/setup.sql` onc
 
 The storage migrations create private Supabase Storage buckets for quote photos, job photos, receipts, payment proofs, and settings assets. Later migrations add managed service areas, service-specific intake questions, targeted upsells, service workload defaults, crew availability, route/schedule planning fields, tighter expense RLS, and expanded phone/browser image MIME support.
 
+## Review seed data
+
+To populate the online Supabase project with a complete fake review dataset around seven public/commercial addresses in the Anderson / 45255 area:
+
+```bash
+npm run seed:review-45255
+```
+
+The script creates fake admin/crew/customer auth users, seven mapped customer properties, quote requests, normalized service selections/answers/photos, estimates, jobs, invoices, payments, expenses, media records, crew availability, terms acceptances, and activity logs. It is idempotent for the `review.jjllawn.local` fake account domain and cleans/recreates that review dataset each run.
+
+Default review login password:
+
+```text
+ReviewDemo123!
+```
+
+Suggested accounts:
+
+```text
+admin@review.jjllawn.local
+jayden@review.jjllawn.local
+avery.thompson@review.jjllawn.local
+```
+
 ## Validation and QA
 
 ```bash

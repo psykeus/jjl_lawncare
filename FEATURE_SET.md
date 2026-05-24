@@ -342,6 +342,14 @@
 - `npm run build`
 - `npm run qa:rls` signs in with seeded demo users and verifies representative public, customer, crew, and admin RLS boundaries
 
+## Review seed data
+
+- `npm run seed:review-45255` creates a complete fake review dataset around seven public/commercial Anderson / 45255 addresses
+- Includes fake admin, crew, customer, and banned customer accounts under `review.jjllawn.local`
+- Includes seven mapped properties with latitude/longitude for local map pins
+- Includes quote requests, normalized request services, answers, private quote photos, estimates, jobs, invoices, payments, receipts, job photos, crew availability, terms acceptances, expenses, and activity logs
+- Default review password: `ReviewDemo123!` unless `REVIEW_SEED_PASSWORD` is set
+
 ## Demo data/accounts
 
 Seeded demo roles:
