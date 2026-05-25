@@ -81,6 +81,8 @@ export async function createAdminJob(formData: FormData) {
   ]);
   if (!property) redirect("/admin/jobs/new?error=Property not found");
 
+  const estimatedDuration = Math.max(15, Number(formData.get("estimatedDurationMinutes") || service?.estimated_duration_minutes || 60));
+  const requiredCrewSize = Math.max(1, Number(formData.get("requiredCrewSize") || service?.default_crew_size || 1));
   const checklist = await buildChecklistSnapshotForService(serviceId);
   const { data: job, error } = await supabase
     .from("jobs")
@@ -92,8 +94,8 @@ export async function createAdminJob(formData: FormData) {
       scheduled_start_time: String(formData.get("scheduledStartTime") ?? "") || null,
       scheduled_end_time: String(formData.get("scheduledEndTime") ?? "") || null,
       assigned_crew_ids: assignedCrewIds,
-      estimated_duration_minutes: Number(service?.estimated_duration_minutes ?? 60),
-      required_crew_size: Number(service?.default_crew_size ?? 1),
+      estimated_duration_minutes: estimatedDuration,
+      required_crew_size: requiredCrewSize,
       checklist_snapshot: checklist,
       customer_visible_notes: String(formData.get("requestedWork") ?? ""),
       tool_notes: String(formData.get("toolNotes") ?? ""),

@@ -2,7 +2,8 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 
 declare global {
@@ -17,6 +18,8 @@ type CheckResult = {
   matchedAreaName: string | null;
   message: string;
 };
+
+export type ServiceAreaStatus = "unknown" | "checking" | "inside" | "outside";
 
 function loadGooglePlaces(apiKey: string) {
   if (window.google?.maps?.places) return Promise.resolve(window.google);
@@ -61,7 +64,7 @@ export type RequestAddressDefaults = {
   longitude?: number | string | null;
 };
 
-export function RequestAddressFields({ apiKey, defaults }: { apiKey?: string | null; defaults?: RequestAddressDefaults | null }) {
+export function RequestAddressFields({ apiKey, defaults, onStatusChange }: { apiKey?: string | null; defaults?: RequestAddressDefaults | null; onStatusChange?: (status: ServiceAreaStatus, result?: CheckResult | null) => void }) {
   const addressRef = useRef<HTMLInputElement>(null);
   const cityRef = useRef<HTMLInputElement>(null);
   const stateRef = useRef<HTMLInputElement>(null);
@@ -72,8 +75,22 @@ export function RequestAddressFields({ apiKey, defaults }: { apiKey?: string | n
   const [loading, setLoading] = useState(false);
   const [autocompleteError, setAutocompleteError] = useState<string | null>(null);
 
-  async function checkArea(lat?: number | null, lng?: number | null, city?: string, zip?: string) {
+  const markUnknown = useCallback(() => {
+    setResult(null);
+    if (latRef.current) latRef.current.value = "";
+    if (lngRef.current) lngRef.current.value = "";
+    onStatusChange?.("unknown", null);
+  }, [onStatusChange]);
+
+  const checkArea = useCallback(async (lat?: number | null, lng?: number | null, city?: string, zip?: string) => {
+    const hasLocation = lat != null && lng != null;
+    const hasManualLocation = Boolean(city?.trim() || zip?.trim());
+    if (!hasLocation && !hasManualLocation) {
+      markUnknown();
+      return;
+    }
     setLoading(true);
+    onStatusChange?.("checking", null);
     try {
       const params = new URLSearchParams();
       if (lat != null) params.set("lat", String(lat));
@@ -81,11 +98,20 @@ export function RequestAddressFields({ apiKey, defaults }: { apiKey?: string | n
       if (city) params.set("city", city);
       if (zip) params.set("zip", zip);
       const response = await fetch(`/api/service-area/check?${params.toString()}`);
-      if (response.ok) setResult(await response.json());
+      if (response.ok) {
+        const nextResult = await response.json() as CheckResult;
+        setResult(nextResult);
+        onStatusChange?.(nextResult.inside ? "inside" : "outside", nextResult);
+      } else {
+        onStatusChange?.("unknown", null);
+      }
+    } catch {
+      setAutocompleteError("Service-area check could not be completed.");
+      onStatusChange?.("unknown", null);
     } finally {
       setLoading(false);
     }
-  }
+  }, [markUnknown, onStatusChange]);
 
   useEffect(() => {
     if (!apiKey || !addressRef.current) return;
@@ -123,22 +149,26 @@ export function RequestAddressFields({ apiKey, defaults }: { apiKey?: string | n
     return () => {
       cancelled = true;
     };
-  }, [apiKey]);
+  }, [apiKey, checkArea]);
 
   return (
     <div className="grid gap-4">
       <Field label="Address line 1" hint={apiKey ? "Start typing and select your address to check the service area." : "Address autocomplete is available after the Google Maps browser key is configured."}>
-        <Input ref={addressRef} name="addressLine1" required autoComplete="street-address" defaultValue={defaults?.addressLine1 ?? ""} />
+        <Input ref={addressRef} name="addressLine1" required autoComplete="street-address" defaultValue={defaults?.addressLine1 ?? ""} onChange={markUnknown} />
       </Field>
       <input ref={latRef} type="hidden" name="latitude" defaultValue={defaults?.latitude ?? ""} />
       <input ref={lngRef} type="hidden" name="longitude" defaultValue={defaults?.longitude ?? ""} />
       <div className="grid gap-4 md:grid-cols-[1fr_1fr_90px_120px]">
         <Field label="Address line 2"><Input name="addressLine2" autoComplete="address-line2" defaultValue={defaults?.addressLine2 ?? ""} /></Field>
-        <Field label="City"><Input ref={cityRef} name="city" required autoComplete="address-level2" defaultValue={defaults?.city ?? ""} onBlur={(event) => void checkArea(null, null, event.currentTarget.value, zipRef.current?.value)} /></Field>
-        <Field label="State"><Input ref={stateRef} name="state" maxLength={2} required autoComplete="address-level1" defaultValue={defaults?.state ?? ""} /></Field>
-        <Field label="ZIP"><Input ref={zipRef} name="zip" required autoComplete="postal-code" defaultValue={defaults?.zip ?? ""} onBlur={(event) => void checkArea(null, null, cityRef.current?.value, event.currentTarget.value)} /></Field>
+        <Field label="City"><Input ref={cityRef} name="city" required autoComplete="address-level2" defaultValue={defaults?.city ?? ""} onChange={markUnknown} onBlur={(event) => void checkArea(null, null, event.currentTarget.value, zipRef.current?.value)} /></Field>
+        <Field label="State"><Input ref={stateRef} name="state" maxLength={2} required autoComplete="address-level1" defaultValue={defaults?.state ?? ""} onChange={markUnknown} /></Field>
+        <Field label="ZIP"><Input ref={zipRef} name="zip" required autoComplete="postal-code" defaultValue={defaults?.zip ?? ""} onChange={markUnknown} onBlur={(event) => void checkArea(null, null, cityRef.current?.value, event.currentTarget.value)} /></Field>
       </div>
-      {loading ? <div className="rounded-lg bg-[var(--muted)] p-3 text-sm text-[var(--muted-foreground)]">Checking service area…</div> : null}
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="button" variant="outline" onClick={() => void checkArea(latRef.current?.value ? Number(latRef.current.value) : null, lngRef.current?.value ? Number(lngRef.current.value) : null, cityRef.current?.value, zipRef.current?.value)}>Check service area</Button>
+        <p className="text-xs text-[var(--muted-foreground)]">Required before choosing services.</p>
+      </div>
+      {loading ? <div className="rounded-lg bg-[var(--muted)] p-3 text-sm text-[var(--muted-foreground)]" role="status">Checking service area…</div> : null}
       {result ? <div className={`rounded-lg p-3 text-sm font-medium ${result.inside ? "tone-success text-[var(--success)]" : "tone-warning text-[var(--warning)]"}`}>{result.message}</div> : null}
       {autocompleteError ? <div className="rounded-lg tone-warning p-3 text-sm text-[var(--warning)]">{autocompleteError} You can still type the address manually.</div> : null}
     </div>

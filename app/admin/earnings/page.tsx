@@ -66,7 +66,23 @@ export default async function EarningsPage() {
         <Card><div className="text-sm text-[var(--muted-foreground)]">Distributable</div><div className="mt-2 text-2xl font-black">{formatCurrency(totals.distributableProfit)}</div></Card>
       </div>
 
-      <Card className="overflow-x-auto p-0">
+      <div className="grid gap-3 md:hidden">
+        {rows.map((row) => (
+          <Card key={row.job.id} className="grid gap-3 p-4">
+            <div className="flex items-start justify-between gap-3"><h2 className="font-black">{row.customer?.name ?? "Job"}</h2><strong>{formatCurrency(row.split.distributableProfit)}</strong></div>
+            <div className="grid grid-cols-2 gap-2 rounded-xl bg-[var(--muted)] p-3 text-sm">
+              <div><span className="block text-[var(--muted-foreground)]">Gross</span><strong>{formatCurrency(row.split.grossRevenue)}</strong></div>
+              <div><span className="block text-[var(--muted-foreground)]">Expenses</span><strong>{formatCurrency(row.split.jobExpenses)}</strong></div>
+              <div><span className="block text-[var(--muted-foreground)]">Reserves</span><strong>{formatCurrency(row.split.equipmentReserve + row.split.taxSavingsReserve)}</strong></div>
+              <div><span className="block text-[var(--muted-foreground)]">Payouts</span><strong>{row.split.payouts.length}</strong></div>
+            </div>
+            <div className="text-sm">{row.split.payouts.length ? row.split.payouts.map((payout) => <div key={payout.crewMemberId}>{profileById.get(payout.crewMemberId) ?? "Crew"}: {formatCurrency(payout.amount)}</div>) : <span className="text-[var(--muted-foreground)]">No crew assigned</span>}</div>
+          </Card>
+        ))}
+        {rows.length ? null : <Card><p className="text-sm text-[var(--muted-foreground)]">No completed or paid jobs yet.</p></Card>}
+      </div>
+
+      <Card className="hidden overflow-x-auto p-0 md:block">
         <table className="w-full text-left text-sm">
           <thead className="bg-[var(--muted)]"><tr><th className="p-3">Job</th><th className="p-3">Gross</th><th className="p-3">Expenses</th><th className="p-3">Reserves</th><th className="p-3">Distributable</th><th className="p-3">Crew payout</th></tr></thead>
           <tbody>

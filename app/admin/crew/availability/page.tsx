@@ -39,21 +39,22 @@ export default async function CrewAvailabilityPage({ searchParams }: { searchPar
         {error ? <div className="mt-4 rounded-lg tone-warning p-3 text-sm text-[var(--warning)]">Crew availability table is not available yet. Apply db/migrations/007_scheduling_planning.sql.</div> : null}
       </div>
 
-      <Card>
-        <h2 className="text-xl font-bold">Add availability</h2>
-        <form action={upsertCrewAvailability} className="mt-4 grid gap-4 md:grid-cols-3">
-          <Field label="Crew member"><Select name="profileId" required>{(crew ?? []).map((member) => <option key={member.id} value={member.id}>{member.name ?? member.email}</option>)}</Select></Field>
-          <Field label="Date"><Input name="availableDate" type="date" defaultValue={date} required /></Field>
-          <Field label="Max hours"><Input name="maxHours" type="number" step="0.25" placeholder="optional" /></Field>
-          <Field label="Start"><Input name="startTime" type="time" defaultValue="09:00" required /></Field>
-          <Field label="End"><Input name="endTime" type="time" defaultValue="17:00" required /></Field>
-          <label className="self-end text-sm"><input className="mr-2" type="checkbox" name="active" defaultChecked /> Active</label>
-          <div className="md:col-span-3"><Field label="Notes"><Textarea name="notes" /></Field></div>
-          <div className="md:col-span-3"><Button type="submit">Save availability</Button></div>
-        </form>
-      </Card>
+      <div className="grid gap-3 md:hidden">
+        {rows.map((row) => {
+          const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+          return (
+            <Card key={row.id} className="grid gap-3 p-4">
+              <div className="flex items-start justify-between gap-3"><div><h2 className="font-black">{profile?.name ?? profile?.email}</h2><p className="mt-1 text-sm text-[var(--muted-foreground)]">{formatDate(row.available_date)}</p></div><span className="rounded-full bg-[var(--muted)] px-2 py-1 text-xs font-bold">{row.active ? "Active" : "Inactive"}</span></div>
+              <div className="grid grid-cols-2 gap-2 rounded-xl bg-[var(--muted)] p-3 text-sm"><div><span className="block text-[var(--muted-foreground)]">Window</span><strong>{row.start_time}–{row.end_time}</strong></div><div><span className="block text-[var(--muted-foreground)]">Max hours</span><strong>{row.max_hours ?? "—"}</strong></div></div>
+              {row.notes ? <p className="text-sm text-[var(--muted-foreground)]">{row.notes}</p> : null}
+              {row.active ? <form action={deactivateCrewAvailability}><input type="hidden" name="id" value={row.id} /><Button type="submit" size="sm" variant="ghost">Deactivate</Button></form> : null}
+            </Card>
+          );
+        })}
+        {rows.length ? null : <Card><p className="text-sm text-[var(--muted-foreground)]">No availability entered.</p></Card>}
+      </div>
 
-      <Card className="overflow-x-auto p-0">
+      <Card className="hidden overflow-x-auto p-0 md:block">
         <table className="w-full text-left text-sm">
           <thead className="bg-[var(--muted)]"><tr><th className="p-3">Date</th><th className="p-3">Crew</th><th className="p-3">Window</th><th className="p-3">Max hours</th><th className="p-3">Status</th><th className="p-3">Action</th></tr></thead>
           <tbody>
@@ -65,6 +66,20 @@ export default async function CrewAvailabilityPage({ searchParams }: { searchPar
           </tbody>
         </table>
       </Card>
+
+      <details className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+        <summary className="cursor-pointer text-xl font-bold">Add availability</summary>
+        <form action={upsertCrewAvailability} className="mt-4 grid gap-4 md:grid-cols-3">
+          <Field label="Crew member"><Select name="profileId" required>{(crew ?? []).map((member) => <option key={member.id} value={member.id}>{member.name ?? member.email}</option>)}</Select></Field>
+          <Field label="Date"><Input name="availableDate" type="date" defaultValue={date} required /></Field>
+          <Field label="Max hours"><Input name="maxHours" type="number" step="0.25" placeholder="optional" /></Field>
+          <Field label="Start"><Input name="startTime" type="time" defaultValue="09:00" required /></Field>
+          <Field label="End"><Input name="endTime" type="time" defaultValue="17:00" required /></Field>
+          <label className="self-end text-sm"><input className="mr-2" type="checkbox" name="active" defaultChecked /> Active</label>
+          <div className="md:col-span-3"><Field label="Notes"><Textarea name="notes" /></Field></div>
+          <div className="md:col-span-3"><Button type="submit">Save availability</Button></div>
+        </form>
+      </details>
     </div>
   );
 }

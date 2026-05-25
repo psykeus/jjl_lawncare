@@ -4,11 +4,12 @@ import { Card } from "@/components/ui/card";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminJob } from "../actions";
+import { ScheduleFitSummary } from "../schedule-fit-summary";
 
 type RelatedRow<T> = T | T[] | null;
 function one<T>(value: RelatedRow<T>): T | null { return Array.isArray(value) ? (value[0] ?? null) : value; }
 
-export default async function NewAdminJobPage({ searchParams }: { searchParams: Promise<{ customerId?: string; error?: string }> }) {
+export default async function NewAdminJobPage({ searchParams }: { searchParams: Promise<{ customerId?: string; error?: string; scheduledDate?: string; scheduledStartTime?: string; scheduledEndTime?: string; estimatedDurationMinutes?: string; requiredCrewSize?: string }> }) {
   const params = await searchParams;
   const supabase = await createClient();
   const [{ data: properties }, { data: services }, { data: crew }] = await Promise.all([
@@ -26,6 +27,8 @@ export default async function NewAdminJobPage({ searchParams }: { searchParams: 
         <p className="mt-2 text-[var(--muted-foreground)]">Use this for phone/text/admin-entered work that did not start as a public quote request.</p>
         {params.error ? <div className="mt-4 rounded-lg tone-danger p-3 text-sm text-[var(--danger)]">{params.error}</div> : null}
       </div>
+
+      <ScheduleFitSummary scheduledDate={params.scheduledDate} scheduledStartTime={params.scheduledStartTime} estimatedDurationMinutes={params.estimatedDurationMinutes ?? 60} requiredCrewSize={params.requiredCrewSize ?? 1} />
 
       <Card>
         <form action={createAdminJob} className="grid gap-4">
@@ -46,9 +49,14 @@ export default async function NewAdminJobPage({ searchParams }: { searchParams: 
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
-            <Field label="Scheduled date"><Input name="scheduledDate" type="date" /></Field>
-            <Field label="Start time"><Input name="scheduledStartTime" type="time" /></Field>
-            <Field label="End time"><Input name="scheduledEndTime" type="time" /></Field>
+            <Field label="Scheduled date"><Input name="scheduledDate" type="date" defaultValue={params.scheduledDate ?? ""} /></Field>
+            <Field label="Start time"><Input name="scheduledStartTime" type="time" defaultValue={params.scheduledStartTime ?? ""} /></Field>
+            <Field label="End time"><Input name="scheduledEndTime" type="time" defaultValue={params.scheduledEndTime ?? ""} /></Field>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Estimated minutes"><Input name="estimatedDurationMinutes" type="number" min="15" defaultValue={params.estimatedDurationMinutes ?? 60} /></Field>
+            <Field label="Required crew"><Input name="requiredCrewSize" type="number" min="1" defaultValue={params.requiredCrewSize ?? 1} /></Field>
           </div>
 
           <div className="grid gap-2 rounded-xl border border-[var(--border)] p-4 text-sm">

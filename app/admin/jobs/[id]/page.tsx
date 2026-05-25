@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/status/status-badge";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils";
 import { generateInvoiceForJob, updateJobChecklist, updateJobSchedule, uploadJobPhoto } from "../actions";
+import { ScheduleFitSummary } from "../schedule-fit-summary";
 
 type RelatedRow<T> = T | T[] | null;
 function one<T>(value: RelatedRow<T>): T | null { return Array.isArray(value) ? (value[0] ?? null) : value; }
@@ -65,6 +66,8 @@ export default async function AdminJobDetailPage({
 
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
         <div className="space-y-4">
+          <ScheduleFitSummary scheduledDate={job.scheduled_date} scheduledStartTime={job.scheduled_start_time} estimatedDurationMinutes={job.estimated_duration_minutes ?? 60} requiredCrewSize={job.required_crew_size ?? 1} excludeJobId={job.id} />
+
           <Card>
             <h2 className="text-xl font-bold">Schedule and assignment</h2>
             <form action={updateJobSchedule} className="mt-4 grid gap-4">

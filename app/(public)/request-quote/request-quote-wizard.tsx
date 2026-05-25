@@ -8,7 +8,7 @@ import { Alert } from "@/components/ui/alert";
 import { Field, Input, Textarea } from "@/components/ui/input";
 import { servicePriceLabel } from "@/lib/services/display";
 import { submitQuoteRequest } from "./actions";
-import { RequestAddressFields, type RequestAddressDefaults } from "./request-address-fields";
+import { RequestAddressFields, type RequestAddressDefaults, type ServiceAreaStatus } from "./request-address-fields";
 
 export type WizardServiceOption = {
   id: string;
@@ -84,7 +84,7 @@ function toArray(value: string | string[] | undefined) {
 export function RequestQuoteWizard({ services, initialServiceId, apiKey, error, customerDefaults }: { services: WizardService[]; initialServiceId?: string; apiKey?: string | null; error?: string; customerDefaults?: RequestCustomerDefaults | null }) {
   const initialSelection = initialServiceId && services.some((service) => service.id === initialServiceId) ? [initialServiceId] : [];
   const hasSavedRequestInfo = Boolean(customerDefaults?.addressLine1 && customerDefaults?.email);
-  const [step, setStep] = useState(initialSelection.length || hasSavedRequestInfo ? 1 : 0);
+  const [step, setStep] = useState(0);
   const [stepError, setStepError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(initialSelection);
@@ -92,6 +92,7 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error, 
   const [notes, setNotes] = useState<NotesState>({});
   const [photoServiceIds, setPhotoServiceIds] = useState<string[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [serviceAreaStatus, setServiceAreaStatus] = useState<ServiceAreaStatus>("unknown");
 
   const selectedServices = useMemo(() => services.filter((service) => selectedServiceIds.includes(service.id)), [selectedServiceIds, services]);
   const coreServices = services.filter((service) => service.service_type === "core");
@@ -153,7 +154,21 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error, 
 
   function validateStep(stepIndex: number) {
     setStepError(null);
-    if (stepIndex === 0 || stepIndex === 3) return validateNativeStep(stepIndex);
+    if (stepIndex === 0) {
+      if (!validateNativeStep(stepIndex)) return false;
+      if (serviceAreaStatus !== "inside") {
+        const message = serviceAreaStatus === "outside"
+          ? "This address appears to be outside the current service area. Please use a covered address or contact us before submitting."
+          : serviceAreaStatus === "checking"
+            ? "Please wait for the service-area check to finish before continuing."
+            : "Please check the service area for this address before choosing services.";
+        setStepError(message);
+        window.requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>('[data-step-panel="0"] button')?.focus());
+        return false;
+      }
+      return true;
+    }
+    if (stepIndex === 3) return validateNativeStep(stepIndex);
     if (stepIndex === 1 && !canContinueServices()) {
       setStepError("Choose at least one service to continue.");
       return false;
@@ -307,7 +322,7 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error, 
             <p className="mt-2 text-sm text-[var(--muted-foreground)]">Start with the property address so we can check the service area before you spend time adding details.</p>
           </div>
           {hasSavedRequestInfo ? <div className="rounded-2xl bg-[var(--muted)] p-4 text-sm text-[var(--muted-foreground)]"><strong className="text-[var(--foreground)]">Saved property loaded.</strong> We prefilled your existing account and property information. You can edit it if this request is for a different property.</div> : null}
-          <RequestAddressFields apiKey={apiKey} defaults={customerDefaults} />
+          <RequestAddressFields apiKey={apiKey} defaults={customerDefaults} onStatusChange={(status) => setServiceAreaStatus(status)} />
           <div className="flex justify-end"><Button type="button" onClick={() => goToStep(1)}>Next: choose services</Button></div>
         </Card>
 

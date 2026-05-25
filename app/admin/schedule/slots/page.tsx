@@ -10,6 +10,7 @@ import { formatDate } from "@/lib/utils";
 type RelatedRow<T> = T | T[] | null;
 function one<T>(value: RelatedRow<T>): T | null { return Array.isArray(value) ? (value[0] ?? null) : value; }
 function isoDate(offsetDays: number) { const d = new Date(); d.setDate(d.getDate() + offsetDays); return d.toISOString().slice(0, 10); }
+function timeToInput(total: number) { const hours = Math.floor(total / 60); const minutes = total % 60; return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`; }
 
 export default async function SlotFinderPage({ searchParams }: { searchParams: Promise<{ duration?: string; crew?: string; days?: string }> }) {
   const params = await searchParams;
@@ -61,7 +62,7 @@ export default async function SlotFinderPage({ searchParams }: { searchParams: P
       <Card>
         <h2 className="text-xl font-bold">Best candidate slots</h2>
         <div className="mt-4 grid gap-3">
-          {best.map((row) => <Link key={row.date} href={`/admin/schedule?date=${row.date}&duration=${duration}&crew=${crewNeeded}`} className="rounded-xl border border-[color-mix(in_srgb,var(--success)_35%,var(--border))] tone-success p-4 text-sm text-[var(--success)]"><strong>{formatDate(row.date)} around {minutesToTime(row.suggestedStart)}</strong><br />Remaining after fit: {row.capacity.remaining - row.addedWorkload} crew-minutes · {row.crewAvailability.length} crew available</Link>)}
+          {best.map((row) => <Link key={row.date} href={`/admin/jobs/new?scheduledDate=${row.date}&scheduledStartTime=${timeToInput(row.suggestedStart)}&estimatedDurationMinutes=${duration}&requiredCrewSize=${crewNeeded}`} className="rounded-xl border border-[color-mix(in_srgb,var(--success)_35%,var(--border))] tone-success p-4 text-sm text-[var(--success)]"><strong>{formatDate(row.date)} around {minutesToTime(row.suggestedStart)}</strong><br />Use this slot for a new job · Remaining after fit: {row.capacity.remaining - row.addedWorkload} crew-minutes · {row.crewAvailability.length} crew available</Link>)}
           {best.length ? null : <p className="text-sm text-[var(--muted-foreground)]">No fitting slots found in this range. Add availability, reduce workload, or extend the search window.</p>}
         </div>
       </Card>

@@ -129,24 +129,6 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
         </div>
       </Card>
 
-      <Card>
-        <h2 className="text-xl font-bold">Create platform user</h2>
-        <p className="mt-2 text-sm text-[var(--muted-foreground)]">For customer records with properties, use Customers. This form creates login/access only.</p>
-        <form action={createPlatformUser} className="mt-4 grid gap-4">
-          <div className="grid gap-4 md:grid-cols-4">
-            <Field label="Name"><Input name="name" required /></Field>
-            <Field label="Email"><Input name="email" type="email" required /></Field>
-            <Field label="Phone"><Input name="phone" /></Field>
-            <Field label="Role"><Select name="role" defaultValue="customer"><option value="customer">Customer</option><option value="crew">Crew</option><option value="admin">Admin</option></Select></Field>
-          </div>
-          <div className="grid gap-4 md:grid-cols-[1fr_240px]">
-            <label className="text-sm font-medium"><input className="mr-2" type="checkbox" name="active" defaultChecked /> Active / allowed to sign in</label>
-            <Field label="Temporary password"><Input name="password" type="text" placeholder="Optional; auto-generated if blank" /></Field>
-          </div>
-          <Button type="submit">Create user</Button>
-        </form>
-      </Card>
-
       <div className="grid gap-3 md:hidden">
         {rows.length ? null : <Card><p className="text-sm text-[var(--muted-foreground)]">No {selectedType === "all" ? "" : `${selectedType} `}users found.</p></Card>}
         {rows.map((profile) => {
@@ -257,6 +239,24 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
           </tbody>
         </table>
       </Card>
+
+      <details className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+        <summary className="cursor-pointer text-xl font-bold">Create platform user</summary>
+        <p className="mt-2 text-sm text-[var(--muted-foreground)]">For customer records with properties, use Customers. This form creates login/access only.</p>
+        <form action={createPlatformUser} className="mt-4 grid gap-4">
+          <div className="grid gap-4 md:grid-cols-4">
+            <Field label="Name"><Input name="name" required /></Field>
+            <Field label="Email"><Input name="email" type="email" required /></Field>
+            <Field label="Phone"><Input name="phone" /></Field>
+            <Field label="Role"><Select name="role" defaultValue="customer"><option value="customer">Customer</option><option value="crew">Crew</option><option value="admin">Admin</option></Select></Field>
+          </div>
+          <div className="grid gap-4 md:grid-cols-[1fr_240px]">
+            <label className="text-sm font-medium"><input className="mr-2" type="checkbox" name="active" defaultChecked /> Active / allowed to sign in</label>
+            <Field label="Temporary password"><Input name="password" type="text" placeholder="Optional; auto-generated if blank" /></Field>
+          </div>
+          <Button type="submit">Create user</Button>
+        </form>
+      </details>
     </div>
   );
 }

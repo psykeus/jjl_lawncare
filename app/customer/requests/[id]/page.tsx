@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status/status-badge";
 import { createClient } from "@/lib/supabase/server";
-import { formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
 type RelatedRow<T> = T | T[] | null;
 function one<T>(value: RelatedRow<T>): T | null { return Array.isArray(value) ? (value[0] ?? null) : value; }
@@ -44,10 +44,16 @@ export default async function CustomerRequestDetailPage({ params }: { params: Pr
   const serviceRows = (requestServices ?? []) as RequestService[];
   const requestServiceIds = serviceRows.map((service) => service.id);
 
-  const [{ data: answers }, { data: media }] = requestServiceIds.length ? await Promise.all([
+  const [{ data: answers }, { data: media }, { data: documents }] = requestServiceIds.length ? await Promise.all([
     supabase.from("quote_request_service_answers").select("quote_request_service_id, answer_text, service_questions(question_text), service_question_options(label)").in("quote_request_service_id", requestServiceIds),
     supabase.from("media_files").select("id, file_url").eq("related_type", "quote_request").eq("related_id", id).order("created_at"),
-  ]) : [{ data: [] }, await supabase.from("media_files").select("id, file_url").eq("related_type", "quote_request").eq("related_id", id).order("created_at")];
+    supabase.from("documents").select("id, document_type, document_number, status, total, balance_due, issue_date, due_date, expiration_date").eq("quote_request_id", id).order("created_at"),
+  ]) : [{ data: [] }, await supabase.from("media_files").select("id, file_url").eq("related_type", "quote_request").eq("related_id", id).order("created_at"), await supabase.from("documents").select("id, document_type, document_number, status, total, balance_due, issue_date, due_date, expiration_date").eq("quote_request_id", id).order("created_at")];
+
+  const estimateIds = (documents ?? []).filter((document) => document.document_type === "estimate").map((document) => document.id);
+  const { data: linkedJobs } = estimateIds.length
+    ? await supabase.from("jobs").select("id, status, scheduled_date, scheduled_start_time, completed_at, customer_visible_notes, estimate_id, invoice:documents!jobs_invoice_id_fkey(id, document_number, status, balance_due)").in("estimate_id", estimateIds).order("scheduled_date", { ascending: false })
+    : { data: [] };
 
   const answersByService = new Map<string, Array<{ question: string; answer: string }>>();
   for (const answer of (answers ?? []) as AnswerRow[]) {
@@ -95,6 +101,15 @@ export default async function CustomerRequestDetailPage({ params }: { params: Pr
                 );
               })}
               {serviceRows.length ? null : <p className="text-sm text-[var(--muted-foreground)]">{legacyService?.name ?? "Request details are being reviewed."}</p>}
+            </div>
+          </Card>
+          <Card>
+            <h2 className="text-xl font-bold">Job timeline</h2>
+            <div className="mt-4 grid gap-3 text-sm">
+              <div className="rounded-xl bg-[var(--muted)] p-3"><strong>Request submitted</strong><p className="text-[var(--muted-foreground)]">{formatDate(request.created_at)}</p></div>
+              {(documents ?? []).map((document) => <div key={document.id} className="rounded-xl border border-[var(--border)] p-3"><div className="flex flex-wrap items-center justify-between gap-2"><Link className="font-semibold text-[var(--primary)]" href={document.document_type === "invoice" ? `/customer/invoices/${document.id}` : `/customer/estimates/${document.id}`}>{document.document_type === "invoice" ? "Invoice" : "Estimate"} {document.document_number ?? "Draft"}</Link><StatusBadge status={document.status} /></div><p className="mt-1 text-[var(--muted-foreground)]">{formatCurrency(Number(document.total ?? 0))}{document.document_type === "invoice" ? ` · Balance ${formatCurrency(Number(document.balance_due ?? 0))}` : ""}</p></div>)}
+              {(linkedJobs ?? []).map((job) => { const invoice = one(job.invoice); return <div key={job.id} className="rounded-xl border border-[var(--border)] p-3"><div className="flex flex-wrap items-center justify-between gap-2"><strong>Scheduled job</strong><StatusBadge status={job.status} /></div><p className="mt-1 text-[var(--muted-foreground)]">{formatDate(job.scheduled_date)} {job.scheduled_start_time ?? ""}{job.completed_at ? ` · Completed ${formatDate(job.completed_at)}` : ""}</p>{job.customer_visible_notes ? <p className="mt-2 whitespace-pre-wrap">{job.customer_visible_notes}</p> : null}{invoice ? <Link className="mt-2 inline-block font-semibold text-[var(--primary)]" href={`/customer/invoices/${invoice.id}`}>View invoice {invoice.document_number}</Link> : null}</div>; })}
+              {documents?.length || linkedJobs?.length ? null : <p className="text-[var(--muted-foreground)]">We will add estimates, scheduled work, and invoices here as your request moves forward.</p>}
             </div>
           </Card>
           <Card>
