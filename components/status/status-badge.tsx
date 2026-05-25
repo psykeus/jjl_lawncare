@@ -6,7 +6,7 @@ const dangerStatuses = new Set(["declined", "cancelled", "expired", "problem", "
 const infoStatuses = new Set(["draft", "sent", "viewed", "in_progress", "on_the_way"]);
 
 export function StatusBadge({ status }: { status: string | null | undefined }) {
-  const normalized = status ?? "unknown";
+  const normalized = (status ?? "unknown").trim().toLowerCase();
   const variant = dangerStatuses.has(normalized)
     ? "danger"
     : warningStatuses.has(normalized)
@@ -17,5 +17,5 @@ export function StatusBadge({ status }: { status: string | null | undefined }) {
           ? "info"
           : "neutral";
 
-  return <Badge variant={variant}>{normalized.replaceAll("_", " ")}</Badge>;
+  return <Badge variant={variant}>{normalized.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase())}</Badge>;
 }

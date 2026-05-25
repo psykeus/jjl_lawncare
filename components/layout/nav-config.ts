@@ -88,6 +88,22 @@ export const navGroupsByRole: Record<AppRole, NavGroup[]> = {
   ],
 };
 
+export const quickNavByRole: Record<AppRole, NavItem[]> = {
+  admin: [
+    { label: "Dashboard", href: "/admin/dashboard" },
+    { label: "Jobs", href: "/admin/jobs" },
+    { label: "Schedule", href: "/admin/schedule" },
+    { label: "Map", href: "/admin/map" },
+  ],
+  crew: navGroupsByRole.crew[0].items,
+  customer: [
+    { label: "Dashboard", href: "/customer/dashboard" },
+    { label: "Requests", href: "/customer/requests" },
+    { label: "Invoices", href: "/customer/invoices" },
+    { label: "Account", href: "/customer/account" },
+  ],
+};
+
 export function getFlatNav(role: AppRole) {
   return navGroupsByRole[role].flatMap((group) => group.items);
 }

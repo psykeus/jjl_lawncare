@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input, Select } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/status/status-badge";
 import { createClient } from "@/lib/supabase/server";
@@ -12,18 +14,37 @@ function one<T>(value: RelatedRow<T>): T | null {
   return Array.isArray(value) ? (value[0] ?? null) : value;
 }
 
-export default async function AdminQuoteRequestsPage() {
+export default async function AdminQuoteRequestsPage({ searchParams }: { searchParams: Promise<{ status?: string; q?: string }> }) {
+  const params = await searchParams;
+  const status = params.status ?? "all";
+  const query = (params.q ?? "").trim().toLowerCase();
   const supabase = await createClient();
   const { data: requests } = await supabase
     .from("quote_requests")
     .select("id, status, risk_level, customer_notes, created_at, customers(name, email), properties(address_line_1, city, state)")
     .order("created_at", { ascending: false });
 
-  const rows = requests ?? [];
+  const allRows = requests ?? [];
+  const rows = allRows.filter((request) => {
+    const customer = one(request.customers);
+    const property = one(request.properties);
+    const matchesStatus = status === "all" || request.status === status;
+    const matchesQuery = !query || [customer?.name, customer?.email, property?.address_line_1, property?.city, request.customer_notes].some((value) => value?.toLowerCase().includes(query));
+    return matchesStatus && matchesQuery;
+  });
 
   return (
     <div className="space-y-5">
       <PageHeader eyebrow="Intake & Sales" title="Quote requests" description="Review public requests, photos, scope notes, service answers, and risk flags." />
+
+      <Card className="p-3 sm:p-4">
+        <form className="grid gap-3 md:grid-cols-[180px_1fr_auto] md:items-end">
+          <label className="grid gap-1 text-sm font-semibold">Status<Select name="status" defaultValue={status}><option value="all">All statuses</option><option value="new">New</option><option value="needs_review">Needs review</option><option value="accepted">Accepted</option><option value="converted">Converted</option><option value="declined">Declined</option></Select></label>
+          <label className="grid gap-1 text-sm font-semibold">Search<Input name="q" defaultValue={params.q ?? ""} placeholder="Customer, email, address, notes" /></label>
+          <Button type="submit" variant="outline">Filter</Button>
+        </form>
+        <p className="mt-2 text-xs text-[var(--muted-foreground)]">Showing {rows.length} of {allRows.length} requests.</p>
+      </Card>
 
       {rows.length ? (
         <>

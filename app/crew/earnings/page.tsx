@@ -57,7 +57,28 @@ export default async function CrewEarningsPage() {
         <Card><div className="text-sm text-[var(--muted-foreground)]">Reserves</div><div className="mt-2 text-3xl font-black">{formatCurrency(totals.reserves)}</div></Card>
         <Card><div className="text-sm text-[var(--muted-foreground)]">Estimated share</div><div className="mt-2 text-3xl font-black">{formatCurrency(totals.share)}</div></Card>
       </div>
-      <Card className="overflow-x-auto p-0">
+      <div className="grid gap-3 md:hidden">
+        {rows.map((row) => {
+          const customer = one(row.job.customers);
+          return (
+            <Card key={row.job.id} className="grid gap-3 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div><Link href={`/crew/jobs/${row.job.id}`} className="font-bold">{customer?.name ?? "Job"}</Link><p className="text-xs text-[var(--muted-foreground)]">{formatDate(row.job.completed_at ?? row.job.scheduled_date)}</p></div>
+                <StatusBadge status={row.job.status} />
+              </div>
+              <div className="grid grid-cols-2 gap-2 rounded-xl bg-[var(--muted)] p-3 text-sm">
+                <div><span className="block text-[var(--muted-foreground)]">Paid</span><strong>{formatCurrency(row.paid)}</strong></div>
+                <div><span className="block text-[var(--muted-foreground)]">My share</span><strong>{formatCurrency(row.share)}</strong></div>
+                <div><span className="block text-[var(--muted-foreground)]">Expenses</span><strong>{formatCurrency(row.jobExpenses)}</strong></div>
+                <div><span className="block text-[var(--muted-foreground)]">Reserves</span><strong>{formatCurrency(row.reserves)}</strong></div>
+              </div>
+            </Card>
+          );
+        })}
+        {rows.length ? null : <Card><p className="text-sm text-[var(--muted-foreground)]">No completed assigned jobs yet.</p></Card>}
+      </div>
+
+      <Card className="hidden overflow-x-auto p-0 md:block">
         <table className="w-full text-left text-sm">
           <thead className="bg-[var(--muted)]"><tr><th className="p-3">Job</th><th className="p-3">Paid</th><th className="p-3">Expenses</th><th className="p-3">Reserves</th><th className="p-3">Crew split</th><th className="p-3">Status</th></tr></thead>
           <tbody>

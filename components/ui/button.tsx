@@ -16,14 +16,15 @@ const variants = {
 };
 
 const sizes = {
-  sm: "h-9 px-3 text-sm",
-  md: "h-10 px-4",
-  lg: "h-12 px-5 text-lg",
+  sm: "min-h-11 px-3 py-2 text-sm",
+  md: "min-h-11 px-4 py-2",
+  lg: "min-h-12 px-5 py-2 text-lg",
 };
 
-export function Button({ className, variant = "primary", size = "md", ...props }: ButtonProps) {
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button({ className, variant = "primary", size = "md", ...props }, ref) {
   return (
     <button
+      ref={ref}
       className={cn(
         "focus-ring inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition disabled:pointer-events-none disabled:opacity-50",
         variants[variant],
@@ -33,7 +34,7 @@ export function Button({ className, variant = "primary", size = "md", ...props }
       {...props}
     />
   );
-}
+});
 
 type ButtonLinkProps = React.ComponentProps<typeof Link> & {
   variant?: ButtonProps["variant"];

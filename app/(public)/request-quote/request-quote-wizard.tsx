@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Alert } from "@/components/ui/alert";
 import { Field, Input, Textarea } from "@/components/ui/input";
 import { servicePriceLabel } from "@/lib/services/display";
 import { submitQuoteRequest } from "./actions";
@@ -84,6 +85,8 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error, 
   const initialSelection = initialServiceId && services.some((service) => service.id === initialServiceId) ? [initialServiceId] : [];
   const hasSavedRequestInfo = Boolean(customerDefaults?.addressLine1 && customerDefaults?.email);
   const [step, setStep] = useState(initialSelection.length || hasSavedRequestInfo ? 1 : 0);
+  const [stepError, setStepError] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(initialSelection);
   const [answers, setAnswers] = useState<AnswerState>({});
   const [notes, setNotes] = useState<NotesState>({});
@@ -134,7 +137,66 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error, 
     setPhotoServiceIds((current) => fileArray.length ? Array.from(new Set([...current, serviceId])) : current.filter((id) => id !== serviceId));
   }
 
+  function validateNativeStep(stepIndex: number) {
+    const panel = formRef.current?.querySelector<HTMLElement>(`[data-step-panel="${stepIndex}"]`);
+    const fields = Array.from(panel?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>("input, textarea, select") ?? [])
+      .filter((field) => field.type !== "hidden");
+    const invalid = fields.find((field) => !field.checkValidity());
+    if (invalid) {
+      invalid.reportValidity();
+      invalid.focus();
+      setStepError("Please complete the required fields on this step before continuing.");
+      return false;
+    }
+    return true;
+  }
+
+  function validateStep(stepIndex: number) {
+    setStepError(null);
+    if (stepIndex === 0 || stepIndex === 3) return validateNativeStep(stepIndex);
+    if (stepIndex === 1 && !canContinueServices()) {
+      setStepError("Choose at least one service to continue.");
+      return false;
+    }
+    if (stepIndex === 2 && !canContinueDetails()) {
+      const firstMissing = selectedServices.flatMap((service) => service.questions).find((question) => {
+        if (!question.required) return false;
+        const answer = answers[question.id];
+        if (Array.isArray(answer)) return answer.length === 0;
+        return !answer?.trim();
+      });
+      window.requestAnimationFrame(() => document.getElementById(firstMissing ? `question-${firstMissing.id}` : "service-details-heading")?.focus());
+      setStepError("Answer required service questions to continue. Photos are optional.");
+      return false;
+    }
+    return true;
+  }
+
+  function goToStep(targetStep: number) {
+    if (targetStep <= step) {
+      setStepError(null);
+      setStep(targetStep);
+      return;
+    }
+    for (let index = step; index < targetStep; index += 1) {
+      if (!validateStep(index)) {
+        setStep(index);
+        return;
+      }
+    }
+    setStepError(null);
+    setStep(targetStep);
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    for (let index = 0; index <= 3; index += 1) {
+      if (!validateStep(index)) {
+        event.preventDefault();
+        setStep(index);
+        return;
+      }
+    }
+
     const files = Array.from(event.currentTarget.querySelectorAll<HTMLInputElement>('input[type="file"]')).flatMap((input) => Array.from(input.files ?? []));
     const errorMessage = validatePhotoFiles(files);
     if (errorMessage) {
@@ -172,8 +234,9 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error, 
     return (
       <button
         type="button"
+        aria-pressed={selected}
         onClick={() => toggleService(service.id)}
-        className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm ${selected ? "border-[var(--primary)] tone-success ring-2 ring-[color-mix(in_srgb,var(--success)_24%,var(--border))]" : "border-[var(--border)] bg-[var(--card)]"}`}
+        className={`min-h-28 rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm ${selected ? "border-[var(--primary)] tone-success ring-2 ring-[color-mix(in_srgb,var(--success)_24%,var(--border))]" : "border-[var(--border)] bg-[var(--card)]"}`}
       >
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -201,17 +264,20 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error, 
     }
     if (question.question_type === "yes_no") {
       return (
-        <div className="flex flex-wrap gap-2">
-          {["Yes", "No"].map((label) => <button key={label} type="button" onClick={() => setAnswer(question, label.toLowerCase())} className={`rounded-full border px-4 py-2 text-sm font-semibold ${value === label.toLowerCase() ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]" : "border-[var(--border)] bg-[var(--card)]"}`}>{label}</button>)}
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={question.question_text}>
+          {["Yes", "No"].map((label) => {
+            const selected = value === label.toLowerCase();
+            return <button key={label} type="button" role="radio" aria-checked={selected} onClick={() => setAnswer(question, label.toLowerCase())} className={`min-h-11 rounded-full border px-4 py-2 text-sm font-semibold ${selected ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]" : "border-[var(--border)] bg-[var(--card)]"}`}>{label}</button>;
+          })}
         </div>
       );
     }
     return (
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2" role={question.question_type === "single_choice" ? "radiogroup" : "group"} aria-label={question.question_text}>
         {options.map((option) => {
           const selected = question.question_type === "multi_choice" ? toArray(value).includes(option.id) : value === option.id;
           return (
-            <button key={option.id} type="button" onClick={() => setAnswer(question, option.id, !selected)} className={`rounded-full border px-4 py-2 text-sm font-semibold ${selected ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]" : "border-[var(--border)] bg-[var(--card)] hover:bg-[var(--muted)]"}`}>
+            <button key={option.id} type="button" role={question.question_type === "single_choice" ? "radio" : undefined} aria-checked={question.question_type === "single_choice" ? selected : undefined} aria-pressed={question.question_type === "multi_choice" ? selected : undefined} onClick={() => setAnswer(question, option.id, !selected)} className={`min-h-11 rounded-full border px-4 py-2 text-sm font-semibold ${selected ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]" : "border-[var(--border)] bg-[var(--card)] hover:bg-[var(--muted)]"}`}>
               {option.label}
               {Number(option.duration_modifier_minutes ?? 0) ? <span className="ml-1 opacity-80">+{option.duration_modifier_minutes}m</span> : null}
             </button>
@@ -223,28 +289,29 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error, 
   }
 
   return (
-    <form action={submitQuoteRequest} onSubmit={handleSubmit} className="grid gap-6" noValidate>
+    <form ref={formRef} action={submitQuoteRequest} onSubmit={handleSubmit} className="grid gap-6" noValidate>
       <input type="hidden" name="selectedServicesJson" value={selectedJson} />
       <input type="hidden" name="requestedServiceId" value={selectedServiceIds[0] ?? ""} />
       <div className="flex flex-wrap gap-2">
         {stepLabels.map((label, index) => (
-          <button key={label} type="button" onClick={() => setStep(index)} className={`rounded-full px-3 py-1 text-sm font-semibold ${step === index ? "bg-[var(--primary)] text-[var(--primary-foreground)]" : "bg-[var(--muted)] text-[var(--muted-foreground)]"}`}>{index + 1}. {label}</button>
+          <button key={label} type="button" aria-current={step === index ? "step" : undefined} onClick={() => goToStep(index)} className={`min-h-11 rounded-full px-3 py-2 text-sm font-semibold ${step === index ? "bg-[var(--primary)] text-[var(--primary-foreground)]" : "bg-[var(--muted)] text-[var(--muted-foreground)]"}`}>{index + 1}. {label}</button>
         ))}
       </div>
-      {error ? <div className="rounded-lg tone-danger p-3 text-sm font-medium text-[var(--danger)]">{error}</div> : null}
-      {uploadError ? <div className="rounded-lg tone-danger p-3 text-sm font-medium text-[var(--danger)]">{uploadError}</div> : null}
+      {error ? <Alert variant="danger">{error}</Alert> : null}
+      {stepError ? <Alert variant="danger">{stepError}</Alert> : null}
+      {uploadError ? <Alert variant="danger">{uploadError}</Alert> : null}
 
-      <Card className={step === 0 ? "space-y-5" : "hidden"}>
+      <Card data-step-panel="0" className={step === 0 ? "space-y-5" : "hidden"}>
           <div>
             <h2 className="text-2xl font-black">Where is the work?</h2>
             <p className="mt-2 text-sm text-[var(--muted-foreground)]">Start with the property address so we can check the service area before you spend time adding details.</p>
           </div>
           {hasSavedRequestInfo ? <div className="rounded-2xl bg-[var(--muted)] p-4 text-sm text-[var(--muted-foreground)]"><strong className="text-[var(--foreground)]">Saved property loaded.</strong> We prefilled your existing account and property information. You can edit it if this request is for a different property.</div> : null}
           <RequestAddressFields apiKey={apiKey} defaults={customerDefaults} />
-          <div className="flex justify-end"><Button type="button" onClick={() => setStep(1)}>Next: choose services</Button></div>
+          <div className="flex justify-end"><Button type="button" onClick={() => goToStep(1)}>Next: choose services</Button></div>
         </Card>
 
-      <Card className={step === 1 ? "space-y-6" : "hidden"}>
+      <Card data-step-panel="1" className={step === 1 ? "space-y-6" : "hidden"}>
           <div>
             <h2 className="text-2xl font-black">What do you need help with?</h2>
             <p className="mt-2 text-sm text-[var(--muted-foreground)]">Choose one or more services. Add-ons appear below as simple upsells after you choose a core service.</p>
@@ -253,6 +320,7 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error, 
             {coreServices.map((service) => <ServiceCard key={service.id} service={service} />)}
             {caseByCase.map((service) => <ServiceCard key={service.id} service={service} />)}
           </div>
+          {coreServices.length || caseByCase.length ? null : <Alert>No requestable services are available right now. Please contact us and we will help schedule the right work.</Alert>}
           {selectedServiceIds.length && addOns.length ? (
             <div className="rounded-2xl border border-[color-mix(in_srgb,var(--success)_35%,var(--border))] tone-success p-4">
               <h3 className="text-lg font-bold">Helpful add-ons</h3>
@@ -263,14 +331,14 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error, 
             </div>
           ) : null}
           <div className="flex flex-wrap justify-between gap-2">
-            <Button type="button" variant="outline" onClick={() => setStep(0)}>Back</Button>
-            <Button type="button" onClick={() => setStep(2)} disabled={!canContinueServices()}>Next: answer details</Button>
+            <Button type="button" variant="outline" onClick={() => goToStep(0)}>Back</Button>
+            <Button type="button" onClick={() => goToStep(2)} disabled={!canContinueServices()}>Next: answer details</Button>
           </div>
         </Card>
 
-      <Card className={step === 2 ? "space-y-6" : "hidden"}>
+      <Card data-step-panel="2" className={step === 2 ? "space-y-6" : "hidden"}>
           <div>
-            <h2 className="text-2xl font-black">Service details</h2>
+            <h2 id="service-details-heading" tabIndex={-1} className="text-2xl font-black">Service details</h2>
             <p className="mt-2 text-sm text-[var(--muted-foreground)]">Answer quick questions and optionally attach photos. Photos help the admin estimate workload and route timing, but they are not required to submit.</p>
           </div>
           {selectedServices.map((service) => (
@@ -284,7 +352,7 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error, 
               </div>
               <div className="mt-5 grid gap-5">
                 {service.questions.map((question) => (
-                  <div key={question.id} className="grid gap-2">
+                  <div key={question.id} id={`question-${question.id}`} tabIndex={-1} className="grid gap-2 scroll-mt-24 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]">
                     <div>
                       <h4 className="font-bold">{question.question_text}{question.required ? <span className="text-[var(--danger)]"> *</span> : null}</h4>
                       {question.help_text ? <p className="text-sm text-[var(--muted-foreground)]">{question.help_text}</p> : null}
@@ -306,12 +374,12 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error, 
           {!selectedServices.length ? <p className="text-sm text-[var(--muted-foreground)]">Choose at least one service first.</p> : null}
           {selectedServices.length && !canContinueDetails() ? <p className="text-sm font-semibold text-[var(--warning)]">Answer required service questions to continue. Photos are optional.</p> : null}
           <div className="flex flex-wrap justify-between gap-2">
-            <Button type="button" variant="outline" onClick={() => setStep(1)}>Back</Button>
-            <Button type="button" onClick={() => setStep(3)} disabled={!selectedServices.length || !canContinueDetails()}>Next: contact</Button>
+            <Button type="button" variant="outline" onClick={() => goToStep(1)}>Back</Button>
+            <Button type="button" onClick={() => goToStep(3)} disabled={!selectedServices.length || !canContinueDetails()}>Next: contact</Button>
           </div>
         </Card>
 
-      <Card className={step === 3 ? "space-y-5" : "hidden"}>
+      <Card data-step-panel="3" className={step === 3 ? "space-y-5" : "hidden"}>
           <div>
             <h2 className="text-2xl font-black">Contact and timing</h2>
             <p className="mt-2 text-sm text-[var(--muted-foreground)]">No account is required to submit this request. If you already have one, you can also <Link href="/auth/login" className="font-semibold text-[var(--primary)]">log in</Link>.</p>
@@ -335,7 +403,7 @@ export function RequestQuoteWizard({ services, initialServiceId, apiKey, error, 
             <Field label="Type your name to accept terms"><Input name="acceptedName" required defaultValue={customerDefaults?.name ?? ""} /></Field>
           </div>
           <div className="flex flex-wrap justify-between gap-2">
-            <Button type="button" variant="outline" onClick={() => setStep(2)}>Back</Button>
+            <Button type="button" variant="outline" onClick={() => goToStep(2)}>Back</Button>
             <Button type="submit" size="lg" disabled={!selectedServices.length}>Submit quote request</Button>
           </div>
         </Card>

@@ -2,17 +2,34 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { AppRole } from "@/lib/auth/session";
+
+function dashboardForRole(role: AppRole) {
+  if (role === "admin") return "/admin/dashboard";
+  if (role === "crew") return "/crew/dashboard";
+  return "/customer/dashboard";
+}
 
 export async function signInWithPassword(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const redirectTo = String(formData.get("redirectTo") ?? "/admin/dashboard");
+  const requestedRedirect = String(formData.get("redirectTo") ?? "").trim();
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) redirect(`/auth/login?error=${encodeURIComponent(error.message)}`);
 
-  redirect(redirectTo);
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, active")
+    .eq("auth_user_id", signInData.user.id)
+    .maybeSingle();
+
+  if (!profile?.active) redirect("/auth/login?error=Your account is inactive. Please contact support.");
+
+  const roleDestination = dashboardForRole(profile.role as AppRole);
+  const safeRequestedRedirect = requestedRedirect.startsWith(`/${profile.role}/`) ? requestedRedirect : "";
+  redirect(safeRequestedRedirect || roleDestination);
 }
 
 export async function signInWithMagicLink(formData: FormData) {

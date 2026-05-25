@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 export function AppShell({ role, name, children }: { role: AppRole; name?: string | null; children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[var(--background)] pb-20 lg:pb-0">
+      <a href="#main-content" className="focus-ring sr-only fixed left-3 top-3 z-[100] rounded-lg bg-[var(--card)] px-4 py-2 font-bold text-[var(--foreground)] shadow-lg focus:not-sr-only">Skip to main content</a>
       <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--card)]/95 backdrop-blur">
         <div className="container-page flex min-h-16 items-center justify-between gap-3 py-3">
           <BrandLogo href={`/${role}/dashboard`} />
@@ -24,7 +25,7 @@ export function AppShell({ role, name, children }: { role: AppRole; name?: strin
         </div>
       </header>
       <div className="container-page py-3 sm:py-4 lg:py-5">
-        <main className="min-w-0">{children}</main>
+        <main id="main-content" className="min-w-0">{children}</main>
       </div>
       <MobileBottomNav role={role} />
     </div>

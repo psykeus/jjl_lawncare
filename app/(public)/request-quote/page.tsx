@@ -1,4 +1,6 @@
+import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Alert } from "@/components/ui/alert";
 import { getGoogleMapsBrowserKey } from "@/lib/maps/config";
 import { createClient } from "@/lib/supabase/server";
 import { RequestQuoteWizard, type RequestCustomerDefaults, type WizardService, type WizardServiceQuestion } from "./request-quote-wizard";
@@ -19,7 +21,12 @@ async function RequestQuoteContent({ searchParams }: { searchParams: Promise<{ e
         <Card>
           <h1 className="text-3xl font-black">Quote request received</h1>
           <p className="mt-3 text-[var(--muted-foreground)]">Thanks. The crew/admin team will review your request and follow up with an estimate or questions.</p>
-          {params.warning ? <div className="mt-4 rounded-lg tone-warning p-3 text-sm font-medium text-[var(--warning)]">{params.warning}</div> : null}
+          {params.warning ? <Alert variant="warning" className="mt-4">{params.warning}</Alert> : null}
+          <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap">
+            {customerDefaults ? <ButtonLink href="/customer/dashboard">Go to dashboard</ButtonLink> : null}
+            <ButtonLink href="/request-quote" variant={customerDefaults ? "outline" : "primary"}>Submit another request</ButtonLink>
+            <ButtonLink href="/services" variant="outline">View services</ButtonLink>
+          </div>
         </Card>
       </section>
     );

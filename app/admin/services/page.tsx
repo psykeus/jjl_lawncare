@@ -30,7 +30,17 @@ export default async function AdminServicesPage({ searchParams }: { searchParams
         }
       />
       {params.error ? <Alert variant="danger">{params.error}</Alert> : null}
-      <Card className="overflow-x-auto p-0">
+      <div className="grid gap-3 md:hidden">
+        {(services ?? []).map((service) => (
+          <Card key={service.id} className="grid gap-3 p-4">
+            <div className="flex items-start justify-between gap-3"><div><Link href={`/admin/services/${service.id}/edit`} className="font-black text-[var(--primary)]">{service.name}</Link><p className="mt-1 text-sm text-[var(--muted-foreground)]">{service.service_type} · {service.pricing_type}</p></div><StatusBadge status={service.active ? "active" : "inactive"} /></div>
+            <p className="rounded-xl bg-[var(--muted)] p-3 text-sm font-semibold">{service.min_price ? formatCurrency(Number(service.min_price)) : ""}{service.max_price ? `–${formatCurrency(Number(service.max_price))}` : service.base_price ? formatCurrency(Number(service.base_price)) : "No price set"}</p>
+            <p className="text-sm text-[var(--muted-foreground)]">Customer visible: {service.visible_to_customer ? "Yes" : "No"}</p>
+            <div className="grid grid-cols-3 gap-2"><ButtonLink href={`/admin/services/${service.id}/edit`} size="sm" variant="outline">Edit</ButtonLink><ButtonLink href={`/admin/services/${service.id}/questions`} size="sm" variant="outline">Questions</ButtonLink><ButtonLink href={`/admin/services/${service.id}/upsells`} size="sm" variant="outline">Upsells</ButtonLink></div>
+          </Card>
+        ))}
+      </div>
+      <Card className="hidden overflow-x-auto p-0 md:block">
         <table className="min-w-[900px] w-full text-left text-sm">
           <thead className="bg-[var(--muted)]">
             <tr><th className="p-3">Name</th><th className="p-3">Type</th><th className="p-3">Pricing</th><th className="p-3">Visible</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr>

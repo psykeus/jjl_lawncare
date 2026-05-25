@@ -1,3 +1,4 @@
+import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { GREATER_CINCINNATI_BOUNDS } from "@/lib/service-area/greater-cincinnati";
@@ -31,6 +32,10 @@ export default async function ServiceAreaPage() {
         <p className="mt-4 max-w-2xl text-[var(--muted-foreground)]">
           JJL Lawn Services is focused on Greater Cincinnati and surrounding neighborhoods. The quote form checks the entered address before the request is submitted.
         </p>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <ButtonLink href="/request-quote">Check my address</ButtonLink>
+          <ButtonLink href="/services" variant="outline">View services</ButtonLink>
+        </div>
       </Card>
       {areas.length ? (
         <div className="grid gap-4 md:grid-cols-2">

@@ -44,7 +44,17 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
           </form>
         </Card>
 
-        <Card className="overflow-x-auto p-0">
+        <div className="grid gap-3 md:hidden">
+          {(expenses ?? []).map((expense) => { const paidBy = one(expense.profiles); const job = one(expense.jobs); const customer = one(job?.customers ?? null); return (
+            <Card key={expense.id} className="grid gap-3 p-4">
+              <div className="flex items-start justify-between gap-3"><div><h2 className="font-black">{expense.category}</h2><p className="mt-1 text-sm text-[var(--muted-foreground)]">{formatDate(expense.expense_date)} · {customer?.name ?? "General"}</p></div><strong>{formatCurrency(Number(expense.amount))}</strong></div>
+              <div className="grid grid-cols-2 gap-2 rounded-xl bg-[var(--muted)] p-3 text-sm"><div><span className="block text-[var(--muted-foreground)]">Paid by</span><strong>{paidBy?.name ?? "—"}</strong></div><div><span className="block text-[var(--muted-foreground)]">Reimbursed</span><strong>{expense.reimbursed ? "Yes" : "No"}</strong></div></div>
+            </Card>
+          ); })}
+          {expenses?.length ? null : <Card><p className="text-sm text-[var(--muted-foreground)]">No expenses recorded.</p></Card>}
+        </div>
+
+        <Card className="hidden overflow-x-auto p-0 md:block">
           <table className="w-full text-left text-sm">
             <thead className="bg-[var(--muted)]"><tr><th className="p-3">Date</th><th className="p-3">Category</th><th className="p-3">Amount</th><th className="p-3">Paid by</th><th className="p-3">Job</th><th className="p-3">Reimbursed</th></tr></thead>
             <tbody>

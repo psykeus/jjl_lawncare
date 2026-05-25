@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
-import { ButtonLink } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input, Select } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/status/status-badge";
 import { createClient } from "@/lib/supabase/server";
@@ -10,14 +11,25 @@ import { formatDate } from "@/lib/utils";
 type RelatedRow<T> = T | T[] | null;
 function one<T>(value: RelatedRow<T>): T | null { return Array.isArray(value) ? (value[0] ?? null) : value; }
 
-export default async function JobsPage() {
+export default async function JobsPage({ searchParams }: { searchParams: Promise<{ status?: string; q?: string }> }) {
+  const params = await searchParams;
+  const status = params.status ?? "all";
+  const query = (params.q ?? "").trim().toLowerCase();
   const supabase = await createClient();
   const { data: jobs } = await supabase
     .from("jobs")
     .select("id, status, scheduled_date, scheduled_start_time, assigned_crew_ids, customers(name), properties(address_line_1, city), documents!jobs_estimate_id_fkey(document_number, total)")
     .order("created_at", { ascending: false });
 
-  const rows = jobs ?? [];
+  const allRows = jobs ?? [];
+  const rows = allRows.filter((job) => {
+    const customer = one(job.customers);
+    const property = one(job.properties);
+    const estimate = one(job.documents);
+    const matchesStatus = status === "all" || job.status === status;
+    const matchesQuery = !query || [customer?.name, property?.address_line_1, property?.city, estimate?.document_number].some((value) => value?.toLowerCase().includes(query));
+    return matchesStatus && matchesQuery;
+  });
 
   return (
     <div className="space-y-5">
@@ -27,6 +39,15 @@ export default async function JobsPage() {
         description="Schedule accepted work, assign crew, track field completion, and generate invoices."
         actions={<ButtonLink href="/admin/jobs/new">Create job</ButtonLink>}
       />
+
+      <Card className="p-3 sm:p-4">
+        <form className="grid gap-3 md:grid-cols-[180px_1fr_auto] md:items-end">
+          <label className="grid gap-1 text-sm font-semibold">Status<Select name="status" defaultValue={status}><option value="all">All statuses</option><option value="accepted">Accepted</option><option value="scheduled">Scheduled</option><option value="on_the_way">On the way</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="paid">Paid</option><option value="cancelled">Cancelled</option></Select></label>
+          <label className="grid gap-1 text-sm font-semibold">Search<Input name="q" defaultValue={params.q ?? ""} placeholder="Customer, address, estimate" /></label>
+          <Button type="submit" variant="outline">Filter</Button>
+        </form>
+        <p className="mt-2 text-xs text-[var(--muted-foreground)]">Showing {rows.length} of {allRows.length} jobs.</p>
+      </Card>
 
       {rows.length ? (
         <>

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input, Select } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/status/status-badge";
 import { createClient } from "@/lib/supabase/server";
@@ -9,7 +11,10 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 type RelatedRow<T> = T | T[] | null;
 function one<T>(value: RelatedRow<T>): T | null { return Array.isArray(value) ? (value[0] ?? null) : value; }
 
-export default async function InvoicesPage() {
+export default async function InvoicesPage({ searchParams }: { searchParams: Promise<{ status?: string; q?: string }> }) {
+  const params = await searchParams;
+  const status = params.status ?? "all";
+  const query = (params.q ?? "").trim().toLowerCase();
   const supabase = await createClient();
   const { data: invoices } = await supabase
     .from("documents")
@@ -17,11 +22,27 @@ export default async function InvoicesPage() {
     .eq("document_type", "invoice")
     .order("created_at", { ascending: false });
 
-  const rows = invoices ?? [];
+  const allRows = invoices ?? [];
+  const rows = allRows.filter((invoice) => {
+    const customer = one(invoice.customers);
+    const property = one(invoice.properties);
+    const matchesStatus = status === "all" || invoice.status === status;
+    const matchesQuery = !query || [invoice.document_number, customer?.name, property?.address_line_1, property?.city].some((value) => value?.toLowerCase().includes(query));
+    return matchesStatus && matchesQuery;
+  });
 
   return (
     <div className="space-y-5">
       <PageHeader eyebrow="Money" title="Invoices" description="Simple invoices with cash/Venmo payment tracking and outstanding balance review." />
+
+      <Card className="p-3 sm:p-4">
+        <form className="grid gap-3 md:grid-cols-[180px_1fr_auto] md:items-end">
+          <label className="grid gap-1 text-sm font-semibold">Status<Select name="status" defaultValue={status}><option value="all">All statuses</option><option value="draft">Draft</option><option value="sent">Sent</option><option value="unpaid">Unpaid</option><option value="cash_pending">Cash pending</option><option value="venmo_pending">Venmo pending</option><option value="paid">Paid</option><option value="problem">Problem</option></Select></label>
+          <label className="grid gap-1 text-sm font-semibold">Search<Input name="q" defaultValue={params.q ?? ""} placeholder="Number, customer, address" /></label>
+          <Button type="submit" variant="outline">Filter</Button>
+        </form>
+        <p className="mt-2 text-xs text-[var(--muted-foreground)]">Showing {rows.length} of {allRows.length} invoices.</p>
+      </Card>
 
       {rows.length ? (
         <>

@@ -33,9 +33,10 @@ function roleLabel(role: string) {
   return "Customer";
 }
 
-export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string; archived?: string; deleted?: string; reset?: string; type?: string }> }) {
+export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string; archived?: string; deleted?: string; reset?: string; type?: string; q?: string }> }) {
   const params = await searchParams;
   const selectedType = params.type === "admin" || params.type === "crew" || params.type === "customer" ? params.type : "all";
+  const query = (params.q ?? "").trim().toLowerCase();
   const supabase = createAdminClient();
   const [{ data: profiles }, { data: customers }, { data: jobs }, { data: activities }, authUsersResult] = await Promise.all([
     supabase.from("profiles").select("id, auth_user_id, name, email, phone, role, active, created_at").order("created_at", { ascending: false }),
@@ -67,7 +68,10 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
   }
 
   const allRows = (profiles ?? []) as ProfileRow[];
-  const rows = selectedType === "all" ? allRows : allRows.filter((profile) => profile.role === selectedType);
+  const typedRows = selectedType === "all" ? allRows : allRows.filter((profile) => profile.role === selectedType);
+  const rows = query
+    ? typedRows.filter((profile) => [profile.name, profile.email, profile.phone].some((value) => value?.toLowerCase().includes(query)))
+    : typedRows;
   const totals = {
     users: allRows.length,
     active: allRows.filter((profile) => profile.active).length,
@@ -77,10 +81,10 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
     customers: allRows.filter((profile) => profile.role === "customer" && profile.active).length,
   };
   const filters = [
-    { label: "All", value: "all", count: totals.users, href: "/admin/users" },
-    { label: "Admins", value: "admin", count: allRows.filter((profile) => profile.role === "admin").length, href: "/admin/users?type=admin" },
-    { label: "Crew", value: "crew", count: allRows.filter((profile) => profile.role === "crew").length, href: "/admin/users?type=crew" },
-    { label: "Customers", value: "customer", count: allRows.filter((profile) => profile.role === "customer").length, href: "/admin/users?type=customer" },
+    { label: "All", value: "all", count: totals.users, href: query ? `/admin/users?q=${encodeURIComponent(query)}` : "/admin/users" },
+    { label: "Admins", value: "admin", count: allRows.filter((profile) => profile.role === "admin").length, href: `/admin/users?type=admin${query ? `&q=${encodeURIComponent(query)}` : ""}` },
+    { label: "Crew", value: "crew", count: allRows.filter((profile) => profile.role === "crew").length, href: `/admin/users?type=crew${query ? `&q=${encodeURIComponent(query)}` : ""}` },
+    { label: "Customers", value: "customer", count: allRows.filter((profile) => profile.role === "customer").length, href: `/admin/users?type=customer${query ? `&q=${encodeURIComponent(query)}` : ""}` },
   ];
 
   return (
@@ -102,10 +106,15 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
       </StatGrid>
 
       <Card className="p-3 sm:p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
           <div>
             <h2 className="font-bold">Filter users</h2>
             <p className="text-sm text-[var(--muted-foreground)]">Showing {rows.length} of {allRows.length} account{allRows.length === 1 ? "" : "s"}.</p>
+            <form className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,320px)_auto]">
+              {selectedType !== "all" ? <input type="hidden" name="type" value={selectedType} /> : null}
+              <Input name="q" defaultValue={params.q ?? ""} placeholder="Search name, email, or phone" aria-label="Search users" />
+              <Button type="submit" variant="outline">Search</Button>
+            </form>
           </div>
           <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex sm:flex-wrap">
             {filters.map((filter) => {

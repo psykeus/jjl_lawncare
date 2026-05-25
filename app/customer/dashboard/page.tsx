@@ -9,11 +9,16 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 
 type RelatedRow<T> = T | T[] | null;
 function one<T>(value: RelatedRow<T>): T | null { return Array.isArray(value) ? (value[0] ?? null) : value; }
+function serviceSummary(request: { services: RelatedRow<{ name: string | null }>; quote_request_services?: Array<{ services: RelatedRow<{ name: string | null }> }> | null }) {
+  const names = (request.quote_request_services ?? []).map((row) => one(row.services)?.name).filter(Boolean) as string[];
+  if (names.length > 1) return `${names[0]} + ${names.length - 1} add-on${names.length === 2 ? "" : "s"}`;
+  return names[0] ?? one(request.services)?.name ?? "Quote request";
+}
 
 export default async function CustomerDashboardPage() {
   const supabase = await createClient();
   const [{ data: requests }, { data: estimates }, { data: invoices }, { data: jobs }, { data: properties }] = await Promise.all([
-    supabase.from("quote_requests").select("id, status, created_at, preferred_dates, services(name), properties(address_line_1, city)").order("created_at", { ascending: false }).limit(5),
+    supabase.from("quote_requests").select("id, status, created_at, preferred_dates, services(name), quote_request_services(services(name)), properties(address_line_1, city)").order("created_at", { ascending: false }).limit(5),
     supabase.from("documents").select("id, document_number, status, total, expiration_date").eq("document_type", "estimate").order("created_at", { ascending: false }).limit(4),
     supabase.from("documents").select("id, document_number, status, balance_due, due_date").eq("document_type", "invoice").order("created_at", { ascending: false }).limit(4),
     supabase.from("jobs").select("id, status, scheduled_date, scheduled_start_time, completed_at, services(name), properties(address_line_1, city)").order("scheduled_date", { ascending: false }).limit(8),
@@ -90,7 +95,7 @@ export default async function CustomerDashboardPage() {
         <div className="grid gap-3">
           <Card>
             <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-bold sm:text-xl">Recent requests</h2><Link href="/customer/requests" className="text-sm font-bold text-[var(--primary)]">View all</Link></div>
-            <div className="mt-3 grid gap-2 text-sm">{requestRows.map((request) => { const service = one(request.services); const property = one(request.properties); return <Link key={request.id} href={`/customer/requests/${request.id}`} className="grid gap-1 rounded-xl bg-[var(--muted)] p-3 hover:brightness-95"><div className="flex items-center justify-between gap-2"><strong>{service?.name ?? "Quote request"}</strong><StatusBadge status={request.status} /></div><span className="text-[var(--muted-foreground)]">{formatDate(request.created_at)} · {property?.address_line_1 ?? "Saved property"}</span></Link>; })}{requestRows.length ? null : <p className="text-[var(--muted-foreground)]">No requests yet.</p>}</div>
+            <div className="mt-3 grid gap-2 text-sm">{requestRows.map((request) => { const property = one(request.properties); return <Link key={request.id} href={`/customer/requests/${request.id}`} className="grid gap-1 rounded-xl bg-[var(--muted)] p-3 hover:brightness-95"><div className="flex items-center justify-between gap-2"><strong>{serviceSummary(request)}</strong><StatusBadge status={request.status} /></div><span className="text-[var(--muted-foreground)]">{formatDate(request.created_at)} · {property?.address_line_1 ?? "Saved property"}</span></Link>; })}{requestRows.length ? null : <p className="text-[var(--muted-foreground)]">No requests yet.</p>}</div>
           </Card>
           <Card>
             <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-bold sm:text-xl">Estimates & invoices</h2><Link href="/customer/invoices" className="text-sm font-bold text-[var(--primary)]">Invoices</Link></div>

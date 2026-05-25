@@ -6,12 +6,17 @@ import { formatDate } from "@/lib/utils";
 
 type RelatedRow<T> = T | T[] | null;
 function one<T>(value: RelatedRow<T>): T | null { return Array.isArray(value) ? (value[0] ?? null) : value; }
+function serviceSummary(request: { services: RelatedRow<{ name: string | null }>; quote_request_services?: Array<{ services: RelatedRow<{ name: string | null }> }> | null }) {
+  const names = (request.quote_request_services ?? []).map((row) => one(row.services)?.name).filter(Boolean) as string[];
+  if (names.length > 1) return `${names[0]} + ${names.length - 1} add-on${names.length === 2 ? "" : "s"}`;
+  return names[0] ?? one(request.services)?.name ?? "Quote request";
+}
 
 export default async function CustomerRequestsPage() {
   const supabase = await createClient();
   const { data: requests } = await supabase
     .from("quote_requests")
-    .select("id, status, customer_notes, preferred_dates, created_at, properties(address_line_1, city, state), services(name)")
+    .select("id, status, customer_notes, preferred_dates, created_at, properties(address_line_1, city, state), services(name), quote_request_services(services(name))")
     .order("created_at", { ascending: false });
 
   return (
@@ -26,12 +31,12 @@ export default async function CustomerRequestsPage() {
       <div className="grid gap-4">
         {(requests ?? []).map((request) => {
           const property = one(request.properties);
-          const service = one(request.services);
+          const summary = serviceSummary(request);
           return (
             <Card key={request.id}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-xl font-bold"><Link href={`/customer/requests/${request.id}`}>{service?.name ?? "Quote request"}</Link></h2>
+                  <h2 className="text-xl font-bold"><Link href={`/customer/requests/${request.id}`}>{summary}</Link></h2>
                   <p className="mt-1 text-sm text-[var(--muted-foreground)]">{property?.address_line_1}, {property?.city}, {property?.state}</p>
                 </div>
                 <StatusBadge status={request.status} />

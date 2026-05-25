@@ -7,7 +7,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { AppRole } from "@/lib/auth/session";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { getFlatNav, navGroupsByRole, type NavGroup } from "./nav-config";
+import { navGroupsByRole, quickNavByRole, type NavGroup } from "./nav-config";
 
 function isActive(pathname: string, href: string) {
   if (pathname === href) return true;
@@ -69,25 +69,33 @@ function NavGroupSection({ group, defaultOpen = false, onNavigate }: { group: Na
 
 export function MobileNavButton({ role }: { role: AppRole }) {
   const [open, setOpen] = useState(false);
-  const buttonRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const dashboardHref = `/${role}/dashboard`;
   const menuGroups = navGroupsByRole[role]
     .map((group) => ({ ...group, items: group.items.filter((item) => item.href !== dashboardHref) }))
     .filter((group) => group.items.length > 0);
 
+  function closeMenu({ restoreFocus = true } = {}) {
+    setOpen(false);
+    if (restoreFocus) window.requestAnimationFrame(() => triggerRef.current?.focus());
+  }
+
   useEffect(() => {
     if (!open) return;
+
+    window.requestAnimationFrame(() => menuRef.current?.querySelector<HTMLElement>("button, a")?.focus());
 
     function handlePointerDown(event: PointerEvent) {
       const target = event.target as Node | null;
       if (!target) return;
-      if (menuRef.current?.contains(target) || buttonRef.current?.contains(target)) return;
-      setOpen(false);
+      if (menuRef.current?.contains(target) || containerRef.current?.contains(target)) return;
+      closeMenu();
     }
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") closeMenu();
     }
 
     document.addEventListener("pointerdown", handlePointerDown);
@@ -99,26 +107,26 @@ export function MobileNavButton({ role }: { role: AppRole }) {
   }, [open]);
 
   return (
-    <div ref={buttonRef} className="relative">
-      <Button type="button" variant="outline" size="sm" onClick={() => setOpen((current) => !current)} aria-expanded={open} aria-haspopup="menu" aria-label="Open navigation menu">
+    <div ref={containerRef} className="relative">
+      <Button ref={triggerRef} type="button" variant="outline" size="sm" onClick={() => (open ? closeMenu({ restoreFocus: false }) : setOpen(true))} aria-expanded={open} aria-haspopup="dialog" aria-label="Open navigation menu">
         <Menu className="h-4 w-4" aria-hidden="true" />
         Menu
       </Button>
       {open ? (
-        <div ref={menuRef} className="absolute right-0 top-full z-50 mt-2 w-[min(92vw,380px)] max-h-[calc(100vh-5rem)] overflow-y-auto rounded-3xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-2xl" role="menu" aria-label="Navigation menu">
+        <div ref={menuRef} className="absolute right-0 top-full z-50 mt-2 w-[min(92vw,380px)] max-h-[calc(100vh-5rem)] overflow-y-auto rounded-3xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-2xl" role="dialog" aria-modal="false" aria-label="Navigation menu">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--primary)]">JJ&amp;L</p>
                 <p className="text-lg font-black">{role === "admin" ? "Admin" : role === "crew" ? "Crew" : "Customer"} menu</p>
               </div>
-              <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)} aria-label="Close navigation menu" className="px-2">
+              <Button type="button" variant="ghost" size="sm" onClick={() => closeMenu()} aria-label="Close navigation menu" className="px-2">
                 <X className="h-5 w-5" aria-hidden="true" />
               </Button>
             </div>
             <nav className="grid gap-3 pb-2" aria-label="Navigation links">
-              <NavLink href={dashboardHref} label="Dashboard" onClick={() => setOpen(false)} />
+              <NavLink href={dashboardHref} label="Dashboard" onClick={() => closeMenu({ restoreFocus: false })} />
               {menuGroups.map((group, index) => (
-                <NavGroupSection key={group.label} group={group} defaultOpen={index === 0} onNavigate={() => setOpen(false)} />
+                <NavGroupSection key={group.label} group={group} defaultOpen={index === 0} onNavigate={() => closeMenu({ restoreFocus: false })} />
               ))}
             </nav>
           </div>
@@ -129,7 +137,7 @@ export function MobileNavButton({ role }: { role: AppRole }) {
 
 export function MobileBottomNav({ role }: { role: AppRole }) {
   const pathname = usePathname();
-  const items = getFlatNav(role).slice(0, 4);
+  const items = quickNavByRole[role];
 
   return (
     <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border)] bg-[var(--card)]/95 px-2 pt-2 shadow-[0_-12px_30px_rgba(0,0,0,0.08)] backdrop-blur lg:hidden" aria-label="Quick navigation">
