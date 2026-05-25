@@ -35,7 +35,7 @@ function roleLabel(role: string) {
 
 export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string; archived?: string; deleted?: string; reset?: string; type?: string; q?: string }> }) {
   const params = await searchParams;
-  const selectedType = params.type === "admin" || params.type === "crew" || params.type === "customer" ? params.type : "all";
+  const selectedType = params.type === "admin" || params.type === "crew" || params.type === "customer" || params.type === "archive" ? params.type : "all";
   const query = (params.q ?? "").trim().toLowerCase();
   const supabase = createAdminClient();
   const [{ data: profiles }, { data: customers }, { data: jobs }, { data: activities }, authUsersResult] = await Promise.all([
@@ -68,48 +68,50 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
   }
 
   const allRows = (profiles ?? []) as ProfileRow[];
-  const typedRows = selectedType === "all" ? allRows : allRows.filter((profile) => profile.role === selectedType);
+  const activeRows = allRows.filter((profile) => profile.active);
+  const archivedRows = allRows.filter((profile) => !profile.active);
+  const baseRows = selectedType === "archive" ? archivedRows : activeRows;
+  const typedRows = selectedType === "all" || selectedType === "archive" ? baseRows : baseRows.filter((profile) => profile.role === selectedType);
   const rows = query
     ? typedRows.filter((profile) => [profile.name, profile.email, profile.phone].some((value) => value?.toLowerCase().includes(query)))
     : typedRows;
   const totals = {
-    users: allRows.length,
-    active: allRows.filter((profile) => profile.active).length,
-    banned: allRows.filter((profile) => !profile.active || authById.get(profile.auth_user_id)?.bannedUntil).length,
-    admins: allRows.filter((profile) => profile.role === "admin" && profile.active).length,
-    crew: allRows.filter((profile) => profile.role === "crew" && profile.active).length,
-    customers: allRows.filter((profile) => profile.role === "customer" && profile.active).length,
+    users: activeRows.length,
+    archived: archivedRows.length,
+    admins: activeRows.filter((profile) => profile.role === "admin").length,
+    crew: activeRows.filter((profile) => profile.role === "crew").length,
+    customers: activeRows.filter((profile) => profile.role === "customer").length,
   };
   const filters = [
-    { label: "All", value: "all", count: totals.users, href: query ? `/admin/users?q=${encodeURIComponent(query)}` : "/admin/users" },
-    { label: "Admins", value: "admin", count: allRows.filter((profile) => profile.role === "admin").length, href: `/admin/users?type=admin${query ? `&q=${encodeURIComponent(query)}` : ""}` },
-    { label: "Crew", value: "crew", count: allRows.filter((profile) => profile.role === "crew").length, href: `/admin/users?type=crew${query ? `&q=${encodeURIComponent(query)}` : ""}` },
-    { label: "Customers", value: "customer", count: allRows.filter((profile) => profile.role === "customer").length, href: `/admin/users?type=customer${query ? `&q=${encodeURIComponent(query)}` : ""}` },
+    { label: "Active", value: "all", count: totals.users, href: query ? `/admin/users?q=${encodeURIComponent(query)}` : "/admin/users" },
+    { label: "Admins", value: "admin", count: totals.admins, href: `/admin/users?type=admin${query ? `&q=${encodeURIComponent(query)}` : ""}` },
+    { label: "Crew", value: "crew", count: totals.crew, href: `/admin/users?type=crew${query ? `&q=${encodeURIComponent(query)}` : ""}` },
+    { label: "Customers", value: "customer", count: totals.customers, href: `/admin/users?type=customer${query ? `&q=${encodeURIComponent(query)}` : ""}` },
+    { label: "Archive", value: "archive", count: totals.archived, href: `/admin/users?type=archive${query ? `&q=${encodeURIComponent(query)}` : ""}` },
   ];
 
   return (
     <div className="space-y-5">
-      <PageHeader eyebrow="Administration" title="Users and access" description="Review platform accounts, send password resets, promote/demote roles, ban accounts, and monitor activity." />
+      <PageHeader eyebrow="Administration" title="Users and access" description="Review active platform accounts, send password resets, promote/demote roles, archive accounts, and monitor activity." />
       {params.error ? <Alert variant="danger">{params.error}</Alert> : null}
       {params.saved ? <Alert variant="success">User access saved.</Alert> : null}
       {params.reset ? <Alert variant="success">Password reset email sent.</Alert> : null}
-      {params.archived ? <Alert variant="success">Account archived and sign-in access blocked.</Alert> : null}
+      {params.archived ? <Alert variant="success">Account archived, removed from the active user list, and sign-in access blocked.</Alert> : null}
       {params.deleted ? <Alert variant="success">Account deleted. Linked customer records, if any, were archived and detached.</Alert> : null}
 
-      <StatGrid className="xl:grid-cols-6">
-        <StatCard label="Users" value={totals.users} href="/admin/users" />
-        <StatCard label="Active" value={totals.active} href="/admin/users" />
-        <StatCard label="Banned/inactive" value={totals.banned} href="/admin/users" />
+      <StatGrid className="xl:grid-cols-5">
+        <StatCard label="Active users" value={totals.users} href="/admin/users" />
         <StatCard label="Admins" value={totals.admins} href="/admin/users?type=admin" />
         <StatCard label="Crew" value={totals.crew} href="/admin/users?type=crew" />
         <StatCard label="Customers" value={totals.customers} href="/admin/users?type=customer" />
+        <StatCard label="Archive" value={totals.archived} href="/admin/users?type=archive" />
       </StatGrid>
 
       <Card className="p-3 sm:p-4">
         <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
           <div>
             <h2 className="font-bold">Filter users</h2>
-            <p className="text-sm text-[var(--muted-foreground)]">Showing {rows.length} of {allRows.length} account{allRows.length === 1 ? "" : "s"}.</p>
+            <p className="text-sm text-[var(--muted-foreground)]">Showing {rows.length} of {baseRows.length} {selectedType === "archive" ? "archived" : "active"} account{baseRows.length === 1 ? "" : "s"}.</p>
             <form className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,320px)_auto]">
               {selectedType !== "all" ? <input type="hidden" name="type" value={selectedType} /> : null}
               <Input name="q" defaultValue={params.q ?? ""} placeholder="Search name, email, or phone" aria-label="Search users" />
@@ -130,11 +132,12 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
       </Card>
 
       <div className="grid gap-3 md:hidden">
-        {rows.length ? null : <Card><p className="text-sm text-[var(--muted-foreground)]">No {selectedType === "all" ? "" : `${selectedType} `}users found.</p></Card>}
+        {rows.length ? null : <Card><p className="text-sm text-[var(--muted-foreground)]">No {selectedType === "all" ? "active " : selectedType === "archive" ? "archived " : `${selectedType} `}users found.</p></Card>}
         {rows.map((profile) => {
           const auth = authById.get(profile.auth_user_id);
           const activity = activityByProfile.get(profile.id);
-          const banned = !profile.active || Boolean(auth?.bannedUntil);
+          const archived = !profile.active;
+          const signInBlocked = Boolean(auth?.bannedUntil);
           return (
             <Card key={profile.id} className="grid gap-4 p-4">
               <div className="flex items-start justify-between gap-3">
@@ -143,7 +146,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                   <p className="break-all text-sm text-[var(--muted-foreground)]">{profile.email}</p>
                   <p className="text-sm text-[var(--muted-foreground)]">{profile.phone ?? "No phone"}</p>
                 </div>
-                <div className="flex shrink-0 flex-col items-end gap-1"><StatusBadge status={profile.role} /><StatusBadge status={banned ? "banned" : "active"} /></div>
+                <div className="flex shrink-0 flex-col items-end gap-1"><StatusBadge status={profile.role} /><StatusBadge status={archived ? "archived" : "active"} /></div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 rounded-xl bg-[var(--muted)] p-3 text-xs">
@@ -169,15 +172,15 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                 <Input name="email" type="email" defaultValue={profile.email ?? ""} aria-label="Email" required />
                 <Input name="phone" defaultValue={profile.phone ?? ""} aria-label="Phone" />
                 <Select name="role" defaultValue={profile.role} aria-label="Role"><option value="customer">Customer</option><option value="crew">Crew</option><option value="admin">Admin</option></Select>
-                <label className="text-xs"><input className="mr-2" type="checkbox" name="active" defaultChecked={profile.active && !auth?.bannedUntil} /> Active / unbanned</label>
-                <Button type="submit" size="sm" variant={banned ? "primary" : "outline"}>{banned ? "Save / unban" : "Save access"}</Button>
+                <label className="text-xs"><input className="mr-2" type="checkbox" name="active" defaultChecked={profile.active && !signInBlocked} /> Active / visible in users</label>
+                <Button type="submit" size="sm" variant={archived ? "primary" : "outline"}>{archived ? "Restore / save" : "Save access"}</Button>
               </form>
 
               <div className="grid gap-2 rounded-xl border border-[var(--border)] p-3">
                 <form action={archiveUserAccount} className="grid gap-2">
                   <input type="hidden" name="profileId" value={profile.id} />
                   <input type="hidden" name="authUserId" value={profile.auth_user_id} />
-                  <Button type="submit" size="sm" variant="outline" disabled={banned}>Archive account</Button>
+                  <Button type="submit" size="sm" variant="outline" disabled={archived}>Archive account</Button>
                 </form>
                 <form action={deleteUserAccount} className="grid gap-2 rounded-lg border border-[color-mix(in_srgb,var(--danger)_35%,var(--border))] tone-danger p-2">
                   <input type="hidden" name="profileId" value={profile.id} />
@@ -198,11 +201,12 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
             {rows.map((profile) => {
               const auth = authById.get(profile.auth_user_id);
               const activity = activityByProfile.get(profile.id);
-              const banned = !profile.active || Boolean(auth?.bannedUntil);
+              const archived = !profile.active;
+              const signInBlocked = Boolean(auth?.bannedUntil);
               return (
                 <tr key={profile.id} className="border-t border-[var(--border)] align-top">
                   <td className="p-3"><div className="font-semibold">{profile.name ?? "Unnamed"}</div><div className="text-[var(--muted-foreground)]">{profile.email}</div><div className="text-[var(--muted-foreground)]">{profile.phone ?? "No phone"}</div><div className="mt-1 text-xs text-[var(--muted-foreground)]">Created {formatDate(auth?.createdAt ?? profile.created_at)}</div></td>
-                  <td className="p-3"><div className="flex flex-wrap gap-2"><StatusBadge status={profile.role} /><StatusBadge status={banned ? "banned" : "active"} /></div><p className="mt-2 text-xs text-[var(--muted-foreground)]">{roleLabel(profile.role)}</p>{auth?.bannedUntil ? <p className="mt-1 text-xs text-[var(--danger)]">Auth banned until {formatDate(auth.bannedUntil)}</p> : null}<form action={sendPasswordResetEmail} className="mt-3"><input type="hidden" name="profileId" value={profile.id} /><input type="hidden" name="authUserId" value={profile.auth_user_id} /><input type="hidden" name="email" value={profile.email ?? ""} /><Button type="submit" size="sm" variant="outline" disabled={!profile.email}>Send password reset</Button></form></td>
+                  <td className="p-3"><div className="flex flex-wrap gap-2"><StatusBadge status={profile.role} /><StatusBadge status={archived ? "archived" : "active"} /></div><p className="mt-2 text-xs text-[var(--muted-foreground)]">{roleLabel(profile.role)}</p>{signInBlocked ? <p className="mt-1 text-xs text-[var(--danger)]">Sign-in blocked until {formatDate(auth?.bannedUntil)}</p> : null}<form action={sendPasswordResetEmail} className="mt-3"><input type="hidden" name="profileId" value={profile.id} /><input type="hidden" name="authUserId" value={profile.auth_user_id} /><input type="hidden" name="email" value={profile.email ?? ""} /><Button type="submit" size="sm" variant="outline" disabled={!profile.email}>Send password reset</Button></form></td>
                   <td className="p-3"><dl className="grid gap-1 text-xs"><div>Linked customers: <strong>{customerByProfile.get(profile.id) ?? 0}</strong></div><div>Assigned jobs: <strong>{assignedJobsByProfile.get(profile.id) ?? 0}</strong></div><div>Open crew jobs: <strong>{activeJobsByProfile.get(profile.id) ?? 0}</strong></div><div>Activity events: <strong>{activity?.count ?? 0}</strong></div></dl></td>
                   <td className="p-3 text-xs"><div>Sign-in: {formatDate(auth?.lastSignInAt)}</div><div className="mt-2">Activity: {activity?.lastAt ? `${activity.lastAction} · ${formatDate(activity.lastAt)}` : "No recorded activity"}</div></td>
                   <td className="p-3">
@@ -211,8 +215,8 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                       <input type="hidden" name="authUserId" value={profile.auth_user_id} />
                       <div className="grid gap-2 md:grid-cols-2"><Input name="name" defaultValue={profile.name ?? ""} aria-label="Name" required /><Input name="email" type="email" defaultValue={profile.email ?? ""} aria-label="Email" required /></div>
                       <div className="grid gap-2 md:grid-cols-[1fr_140px]"><Input name="phone" defaultValue={profile.phone ?? ""} aria-label="Phone" /><Select name="role" defaultValue={profile.role} aria-label="Role"><option value="customer">Customer</option><option value="crew">Crew</option><option value="admin">Admin</option></Select></div>
-                      <label className="text-xs"><input className="mr-2" type="checkbox" name="active" defaultChecked={profile.active && !auth?.bannedUntil} /> Active / unbanned</label>
-                      <Button type="submit" size="sm" variant={banned ? "primary" : "outline"}>{banned ? "Save / unban" : "Save access"}</Button>
+                      <label className="text-xs"><input className="mr-2" type="checkbox" name="active" defaultChecked={profile.active && !signInBlocked} /> Active / visible in users</label>
+                      <Button type="submit" size="sm" variant={archived ? "primary" : "outline"}>{archived ? "Restore / save" : "Save access"}</Button>
                     </form>
                   </td>
                   <td className="p-3">
@@ -221,7 +225,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                         <input type="hidden" name="profileId" value={profile.id} />
                         <input type="hidden" name="authUserId" value={profile.auth_user_id} />
                         <p className="text-xs text-[var(--muted-foreground)]">Archive keeps records but blocks sign-in and archives linked customer rows.</p>
-                        <Button type="submit" size="sm" variant="outline" disabled={banned}>Archive account</Button>
+                        <Button type="submit" size="sm" variant="outline" disabled={archived}>Archive account</Button>
                       </form>
                       <form action={deleteUserAccount} className="grid gap-2 rounded-lg border border-[color-mix(in_srgb,var(--danger)_35%,var(--border))] tone-danger p-2">
                         <input type="hidden" name="profileId" value={profile.id} />

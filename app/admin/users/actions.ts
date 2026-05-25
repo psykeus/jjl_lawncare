@@ -118,7 +118,7 @@ export async function updateUserAccess(formData: FormData) {
   });
   if (!parsed.success) redirect(`/admin/users?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Invalid access update")}`);
   const input = parsed.data;
-  if (actor.id === input.profileId && (!input.active || input.role !== "admin")) redirect("/admin/users?error=You cannot remove your own admin access or ban yourself.");
+  if (actor.id === input.profileId && (!input.active || input.role !== "admin")) redirect("/admin/users?error=You cannot remove your own admin access or archive yourself.");
   const supabase = createAdminClient();
   const { error } = await supabase.from("profiles").update({
     name: input.name,
@@ -130,7 +130,7 @@ export async function updateUserAccess(formData: FormData) {
   if (error) redirect(`/admin/users?error=${encodeURIComponent(error.message)}`);
   await supabase.auth.admin.updateUserById(input.authUserId, { email: input.email, phone: input.phone || undefined, user_metadata: { name: input.name } });
   await setAuthBan(input.authUserId, input.active);
-  await supabase.from("activity_log").insert({ actor_id: actor.id, action: input.active ? "user_access_updated" : "user_banned", related_type: "profile", related_id: input.profileId, metadata_json: { role: input.role, active: input.active } });
+  await supabase.from("activity_log").insert({ actor_id: actor.id, action: input.active ? "user_access_updated" : "user_archived", related_type: "profile", related_id: input.profileId, metadata_json: { role: input.role, active: input.active } });
   revalidatePath("/admin/users");
   revalidatePath("/admin/dashboard");
   redirect("/admin/users?saved=1");
@@ -160,7 +160,7 @@ export async function archiveUserAccount(formData: FormData) {
   const parsed = accountActionSchema.safeParse({ profileId: formData.get("profileId"), authUserId: formData.get("authUserId") });
   if (!parsed.success) redirect("/admin/users?error=Invalid account archive request");
   const { profileId, authUserId } = parsed.data;
-  if (actor.id === profileId) redirect("/admin/users?error=You cannot archive or ban your own admin account.");
+  if (actor.id === profileId) redirect("/admin/users?error=You cannot archive your own admin account.");
   const supabase = createAdminClient();
   const { error } = await supabase.from("profiles").update({ active: false }).eq("id", profileId);
   if (error) redirect(`/admin/users?error=${encodeURIComponent(error.message)}`);
