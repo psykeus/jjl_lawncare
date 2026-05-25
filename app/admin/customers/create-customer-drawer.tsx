@@ -1,19 +1,49 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { createCustomerAndProperty } from "./actions";
 
 export function CreateCustomerDrawer() {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const closeRef = useRef<HTMLButtonElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const trigger = triggerRef.current;
+    closeRef.current?.focus();
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+      if (event.key !== "Tab" || !dialogRef.current) return;
+      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      (previous ?? trigger)?.focus();
+    };
+  }, [open]);
 
   return (
     <>
-      <Button type="button" onClick={() => setOpen(true)}>Add customer</Button>
+      <Button ref={triggerRef} type="button" onClick={() => setOpen(true)}>Add customer</Button>
       {open ? (
-        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Add customer">
+        <div ref={dialogRef} className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Add customer">
           <button type="button" className="absolute inset-0 bg-black/45" aria-label="Close add customer form" onClick={() => setOpen(false)} />
           <div className="absolute inset-y-0 right-0 flex w-[min(100vw,720px)] flex-col border-l border-[var(--border)] bg-[var(--card)] shadow-2xl">
             <div className="flex items-start justify-between gap-3 border-b border-[var(--border)] p-4 sm:p-6">
@@ -22,7 +52,7 @@ export function CreateCustomerDrawer() {
                 <h2 className="text-2xl font-black">Add customer</h2>
                 <p className="mt-1 text-sm text-[var(--muted-foreground)]">Create the customer, optional login, and their first service property.</p>
               </div>
-              <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)} aria-label="Close add customer form" className="px-2">
+              <Button ref={closeRef} type="button" variant="ghost" size="sm" onClick={() => setOpen(false)} aria-label="Close add customer form" className="px-2">
                 <X className="h-5 w-5" aria-hidden="true" />
               </Button>
             </div>
