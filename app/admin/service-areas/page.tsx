@@ -82,11 +82,6 @@ export default async function AdminServiceAreasPage({ searchParams }: { searchPa
         {error ? <div className="mt-4 rounded-lg tone-warning p-3 text-sm text-[var(--warning)]">Service area table is not available yet. Apply db/migrations/005_service_areas.sql or db/setup.sql in Supabase.</div> : null}
       </div>
 
-      <Card>
-        <h2 className="mb-4 text-xl font-bold">Add area</h2>
-        <AreaForm />
-      </Card>
-
       <div className="grid gap-4">
         {areas.map((area) => (
           <Card key={area.id}>
@@ -107,6 +102,11 @@ export default async function AdminServiceAreasPage({ searchParams }: { searchPa
         ))}
         {areas.length ? null : <Card><p className="text-sm text-[var(--muted-foreground)]">No service areas configured yet.</p></Card>}
       </div>
+
+      <details className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+        <summary className="cursor-pointer text-xl font-bold">Add area</summary>
+        <div className="mt-4"><AreaForm /></div>
+      </details>
     </div>
   );
 }

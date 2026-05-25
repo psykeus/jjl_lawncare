@@ -34,24 +34,6 @@ export default async function TermsManagerPage({ searchParams }: { searchParams:
         {params.saved ? <div className="mt-4 rounded-lg tone-success p-3 text-sm text-[var(--success)]">Terms saved.</div> : null}
       </div>
 
-      <Card>
-        <h2 className="text-xl font-bold">New terms version</h2>
-        <form action={createTermsVersion} className="mt-4 grid gap-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Field label="Title"><Input name="title" defaultValue="JJL Lawn Services Terms" required /></Field>
-            <Field label="Version"><Input name="version" placeholder="2026.1" required /></Field>
-            <Field label="Effective date"><Input name="effectiveDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required /></Field>
-          </div>
-          <Field label="Body"><Textarea name="body" className="min-h-64 font-mono" placeholder="Paste the customer-facing terms here." required /></Field>
-          <div className="flex flex-wrap gap-4 text-sm">
-            <label><input className="mr-2" type="checkbox" name="active" /> Active</label>
-            <label><input className="mr-2" type="checkbox" name="requiredForQuoteRequest" defaultChecked /> Required for quote request</label>
-            <label><input className="mr-2" type="checkbox" name="requiredForEstimateAcceptance" defaultChecked /> Required for estimate acceptance</label>
-          </div>
-          <Button type="submit">Create version</Button>
-        </form>
-      </Card>
-
       <div className="grid gap-4">
         {((terms ?? []) as TermsVersion[]).map((term) => (
           <Card key={term.id}>
@@ -79,8 +61,26 @@ export default async function TermsManagerPage({ searchParams }: { searchParams:
             </form>
           </Card>
         ))}
-        {terms?.length ? null : <Card>No terms versions yet. Create one above.</Card>}
+        {terms?.length ? null : <Card>No terms versions yet. Create one below.</Card>}
       </div>
+
+      <details className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+        <summary className="cursor-pointer text-xl font-bold">New terms version</summary>
+        <form action={createTermsVersion} className="mt-4 grid gap-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Field label="Title"><Input name="title" defaultValue="JJL Lawn Services Terms" required /></Field>
+            <Field label="Version"><Input name="version" placeholder="2026.1" required /></Field>
+            <Field label="Effective date"><Input name="effectiveDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required /></Field>
+          </div>
+          <Field label="Body"><Textarea name="body" className="min-h-64 font-mono" placeholder="Paste the customer-facing terms here." required /></Field>
+          <div className="flex flex-wrap gap-4 text-sm">
+            <label><input className="mr-2" type="checkbox" name="active" /> Active</label>
+            <label><input className="mr-2" type="checkbox" name="requiredForQuoteRequest" defaultChecked /> Required for quote request</label>
+            <label><input className="mr-2" type="checkbox" name="requiredForEstimateAcceptance" defaultChecked /> Required for estimate acceptance</label>
+          </div>
+          <Button type="submit">Create version</Button>
+        </form>
+      </details>
     </div>
   );
 }

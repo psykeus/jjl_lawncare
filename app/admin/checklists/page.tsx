@@ -53,16 +53,6 @@ export default async function ChecklistsPage({ searchParams }: { searchParams: P
         {params.saved ? <div className="mt-4 rounded-lg tone-success p-3 text-sm text-[var(--success)]">Checklist saved.</div> : null}
       </div>
 
-      <Card>
-        <h2 className="text-xl font-bold">New template</h2>
-        <form action={createChecklistTemplate} className="mt-4 grid gap-4 md:grid-cols-[1fr_280px_auto_auto] md:items-end">
-          <Field label="Name"><Input name="name" placeholder="Mowing checklist" required /></Field>
-          <Field label="Service"><Select name="serviceId"><ServiceOptions services={services ?? []} /></Select></Field>
-          <label className="pb-2 text-sm"><input className="mr-2" type="checkbox" name="active" defaultChecked /> Active</label>
-          <Button type="submit">Create</Button>
-        </form>
-      </Card>
-
       <div className="grid gap-4">
         {((templates ?? []) as ChecklistTemplate[]).map((template) => {
           const service = one(template.services);
@@ -116,8 +106,18 @@ export default async function ChecklistsPage({ searchParams }: { searchParams: P
             </Card>
           );
         })}
-        {templates?.length ? null : <Card>No checklist templates yet. Create one above.</Card>}
+        {templates?.length ? null : <Card>No checklist templates yet. Create one below.</Card>}
       </div>
+
+      <details className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+        <summary className="cursor-pointer text-xl font-bold">New template</summary>
+        <form action={createChecklistTemplate} className="mt-4 grid gap-4 md:grid-cols-[1fr_280px_auto_auto] md:items-end">
+          <Field label="Name"><Input name="name" placeholder="Mowing checklist" required /></Field>
+          <Field label="Service"><Select name="serviceId"><ServiceOptions services={services ?? []} /></Select></Field>
+          <label className="pb-2 text-sm"><input className="mr-2" type="checkbox" name="active" defaultChecked /> Active</label>
+          <Button type="submit">Create</Button>
+        </form>
+      </details>
     </div>
   );
 }
